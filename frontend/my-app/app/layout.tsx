@@ -1,7 +1,10 @@
 // app/layout.tsx
 import './globals.css'
+import type { Metadata } from 'next'
+// import { SidebarProvider } from "@/components/ui/sidebar"
+// import { AppSidebar } from "@/components/app-sidebar"  // Uncomment when you add sidebar
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'P2P Trade Dashboard',
   description: 'Maximilian P2P Crypto Escrow Platform',
 }
@@ -12,9 +15,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-[#0f172a] text-white antialiased min-h-screen">
-        {children}
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className="bg-background text-foreground antialiased min-h-screen">
+        {/* Uncomment when you add the sidebar */}
+        {/* <SidebarProvider> */}
+          {/* <AppSidebar /> */}
+          <main className="flex-1">
+            {children}
+          </main>
+        {/* </SidebarProvider> */}
       </body>
     </html>
   )

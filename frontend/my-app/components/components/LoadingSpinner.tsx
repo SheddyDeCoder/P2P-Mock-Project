@@ -1,34 +1,36 @@
-export default function Loading() {
+// components/LoadingSpinner.tsx
+import { Loader2 } from "lucide-react"; // Install if missing: npm install lucide-react
+
+export function LoadingSpinner({
+  message = "Loading dashboard...",
+  size = "default",
+}: {
+  message?: string;
+  size?: "sm" | "default" | "lg";
+}) {
+  const sizeClasses = {
+    sm: "h-6 w-6",
+    default: "h-10 w-10",
+    lg: "h-16 w-16",
+  };
+
   return (
-    <main className="min-h-screen p-6 md:p-12">
-      <h1 className="text-3xl font-bold mb-8 text-primary">Trade Dashboard</h1>
-      <div className="animate-pulse space-y-4">
-        <div className="h-8 w-48 bg-gray-700 rounded"></div>
-        <div className="overflow-x-auto rounded-lg border border-gray-700">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-800">
-              <tr>
-                {['ID', 'Buyer', 'Seller', 'Asset', 'Amount', 'Status'].map((h) => (
-                  <th key={h} className="px-6 py-4">
-                    <div className="h-4 w-16 bg-gray-600 rounded"></div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {[...Array(5)].map((_, i) => (
-                <tr key={i}>
-                  {[...Array(6)].map((_, j) => (
-                    <td key={j} className="px-6 py-5">
-                      <div className="h-4 w-3/4 bg-gray-700 rounded"></div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative">
+          <Loader2
+            className={`${sizeClasses[size]} text-yellow-500 animate-spin`}
+          />
+          {/* Optional pulsing ring effect */}
+          <div className="absolute inset-0 rounded-full border-2 border-yellow-500/30 animate-ping" />
         </div>
+
+        {message && (
+          <p className="text-slate-300 text-lg font-medium tracking-wide animate-pulse">
+            {message}
+          </p>
+        )}
       </div>
-    </main>
+    </div>
   );
 }
