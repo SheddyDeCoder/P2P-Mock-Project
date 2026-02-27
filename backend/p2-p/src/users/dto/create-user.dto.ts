@@ -10,4 +10,8 @@ export class CreateUserDto {
     message: 'Username can only contain letters, numbers, and underscores',
   })
   username?: string;
+
+  @ApiProperty({ description: 'The wallet address of the user' })
+  @IsString()
+  wallet_address: string;
 }

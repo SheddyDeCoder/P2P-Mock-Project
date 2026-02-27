@@ -1,16 +1,28 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsPositive, Min } from 'class-validator';
-import { IsString } from 'class-validator/types/decorator/typechecker/IsString';
+import { TradeStatus } from '@prisma/client/wasm';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsUUID,
+  Min,
+  IsString,
+} from 'class-validator';
 
 export class CreateTradeDto {
   @ApiProperty({ description: 'The ID of the buyer' })
   @IsString({ message: 'Buyer ID must be a string' })
-  buyer_id: string;
+  buyerId: string;
 
   @ApiProperty({ description: 'The ID of the seller' })
   @IsOptional()
   @IsString({ message: 'Seller ID must be a string' })
-  seller_id?: string;
+  sellerId: string;
+
+  @ApiProperty({ description: 'The ID of the offer' })
+  @IsUUID('4', { message: 'Offer ID must be a valid UUID' })
+  offerId: string;
 
   @ApiProperty({ description: 'The amount of the trade' })
   @IsNumber({}, { message: 'Amount must be a number' })
@@ -20,6 +32,8 @@ export class CreateTradeDto {
 
   @ApiProperty({ description: 'The status of the trade' })
   @IsOptional()
-  @IsString({ message: 'Status must be a string' })
-  status?: string;
+  @IsEnum(TradeStatus, {
+    message: 'Status must be a valid trade status: pending, funded, completed',
+  })
+  status: TradeStatus = TradeStatus.pending;
 }

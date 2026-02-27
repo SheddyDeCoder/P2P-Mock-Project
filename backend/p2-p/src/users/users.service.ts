@@ -8,11 +8,24 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
-    const { username } = createUserDto;
+    const { username, wallet_address } = createUserDto;
 
-    const user = this.prisma.user.create({
+    const existing = await this.prisma.user.findUnique({
+      where: { walletAddress: wallet_address },
+    });
+    if (existing) {
+      return { message: 'User with the given wallet address already exists' };
+    }
+
+    const user = await this.prisma.user.create({
       data: {
         username,
+        walletAddress: wallet_address,
+      },
+      select: {
+        id: true,
+        username: true,
+        walletAddress: true,
       },
     });
     return { message: 'User created successfully', user };

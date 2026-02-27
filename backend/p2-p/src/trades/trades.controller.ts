@@ -16,12 +16,12 @@ import { UpdateTradeDto } from './dto/update-trade.dto';
 export class TradesController {
   constructor(private readonly tradesService: TradesService) {}
 
-  @Post('Create Trade')
+  @Post()
   create(@Body(ValidationPipe) createTradeDto: CreateTradeDto) {
     return this.tradesService.create(createTradeDto);
   }
 
-  @Get('Get All Trades')
+  @Get()
   findAll() {
     return this.tradesService.findAll();
   }

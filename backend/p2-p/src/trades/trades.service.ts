@@ -8,12 +8,28 @@ export class TradesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createTradeDto: CreateTradeDto) {
-    const { buyer_id, seller_id, amount, status } = createTradeDto;
+    const { buyerId, sellerId, offerId, amount, status } = createTradeDto;
 
-    const trade = this.prisma.trade.create({
+    if (buyerId === sellerId) {
+      return { message: 'Buyer and seller cannot be the same' };
+    }
+
+    const buyer = await this.prisma.user.findUnique({ where: { id: buyerId } });
+    if (!buyer) {
+      return { message: `Buyer with the given ID ${buyerId} does not exist` };
+    }
+    const seller = await this.prisma.user.findUnique({
+      where: { id: sellerId },
+    });
+    if (!seller) {
+      return { message: `Seller with the given ID ${sellerId} does not exist` };
+    }
+
+    const trade = await this.prisma.trade.create({
       data: {
-        buyer_id,
-        seller_id,
+        buyerId,
+        sellerId,
+        offerId,
         amount,
         status,
       },
@@ -22,6 +38,16 @@ export class TradesService {
   }
 
   async findAll() {
-    return this.prisma.trade.findMany();
+    return this.prisma.trade.findMany({
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        createdAt: true,
+        buyer: true,
+        seller: true,
+        offer: true,
+      },
+    });
   }
 }
