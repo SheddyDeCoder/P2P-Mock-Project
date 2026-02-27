@@ -1,15 +1,105 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// ===============================
+// Prisma Client Generator
+// ===============================
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
+// ===============================
+// Supabase PostgreSQL Connection
+// ===============================
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ===============================
+// ENUMS (Statuses)
+// ===============================
+enum TradeStatus {
+  pending
+  funded
+  completed
+  cancelled
+}
+
+enum OfferType {
+  buy
+  sell
+}
+
+enum OfferStatus {
+  active
+  closed
+}
+
+enum EscrowStatus {
+  locked
+  released
+  disputed
+}
+
+// ===============================
+// USER MODEL
+// ===============================
+model User {
+  id             String   @id @default(uuid())
+  walletAddress  String   @unique
+  username       String?
+  createdAt      DateTime @default(now())
+
+  // Relations
+  buyTrades   Trade[] @relation("BuyerTrades")
+  sellTrades  Trade[] @relation("SellerTrades")
+  offers      Offer[]
+}
+
+// ===============================
+// OFFER MODEL
+// ===============================
+model Offer {
+  id        String      @id @default(uuid())
+  userId    String
+  type      OfferType
+  asset     String
+  price     Decimal
+  status    OfferStatus @default(active)
+  createdAt DateTime    @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id])
+  trades Trade[]
+}
+
+// ===============================
+// TRADE MODEL
+// ===============================
+model Trade {
+  id        String       @id @default(uuid())
+  buyerId  String
+  sellerId String
+  offerId  String
+  amount   Decimal
+  status   TradeStatus  @default(pending)
+  createdAt DateTime    @default(now())
+
+  // Relations
+  buyer  User   @relation("BuyerTrades", fields: [buyerId], references: [id])
+  seller User   @relation("SellerTrades", fields: [sellerId], references: [id])
+  offer  Offer  @relation(fields: [offerId], references: [id])
+  escrow Escrow?
+}
+
+// ===============================
+// ESCROW MODEL
+// ===============================
+model Escrow {
+  id        String       @id @default(uuid())
+  tradeId  String       @unique
+  contractAddress String?
+  status   EscrowStatus @default(locked)
+  createdAt DateTime    @default(now())
+
+  // Relations
+  trade Trade @relation(fields: [tradeId], references: [id])
 }
