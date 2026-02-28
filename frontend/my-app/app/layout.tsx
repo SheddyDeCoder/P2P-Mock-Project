@@ -1,29 +1,26 @@
-// app/layout.tsx
-import './globals.css'
-import type { Metadata } from 'next'
-// import { SidebarProvider } from "@/components/ui/sidebar"
-// import { AppSidebar } from "@/components/app-sidebar"  // Uncomment when you add sidebar
+import "./globals.css"
+import { ReactNode } from "react"
+import Navbar from "@/components/layout/Navbar"
+import Footer from "@/components/layout/Footer"
 
-export const metadata: Metadata = {
-  title: 'P2P Trade Dashboard',
-  description: 'Maximilian P2P Crypto Escrow Platform',
+export const metadata = {
+  title: "P2P Exchange",
+  description: "Secure peer-to-peer trading platform",
 }
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="bg-background text-foreground antialiased min-h-screen">
-        {/* Uncomment when you add the sidebar */}
-        {/* <SidebarProvider> */}
-          {/* <AppSidebar /> */}
-          <main className="flex-1">
-            {children}
-          </main>
-        {/* </SidebarProvider> */}
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground">
+        <Navbar />
+        <main className="container mx-auto px-6 py-10">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   )
