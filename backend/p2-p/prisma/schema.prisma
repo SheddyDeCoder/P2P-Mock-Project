@@ -40,12 +40,20 @@ enum EscrowStatus {
 }
 
 // ===============================
-// USER MODEL
+// USER MODEL (Auth + Wallet Ready)
 // ===============================
 model User {
   id             String   @id @default(uuid())
-  walletAddress  String   @unique
+
+  // 🔐 Authentication
+  email          String   @unique
+  hashedPassword String
+  balance        Decimal  @default(0)
+
+  // 🌐 Optional Web3 Support
+  walletAddress  String?  @unique
   username       String?
+
   createdAt      DateTime @default(now())
 
   // Relations
@@ -72,16 +80,20 @@ model Offer {
 }
 
 // ===============================
-// TRADE MODEL
+// TRADE MODEL (Financial Safe)
 // ===============================
 model Trade {
-  id        String       @id @default(uuid())
-  buyerId  String
-  sellerId String
-  offerId  String
-  amount   Decimal
-  status   TradeStatus  @default(pending)
-  createdAt DateTime    @default(now())
+  id              String       @id @default(uuid())
+
+  buyerId         String
+  sellerId        String
+  offerId         String
+
+  amount          Decimal
+  idempotencyKey  String       @unique
+
+  status          TradeStatus  @default(pending)
+  createdAt       DateTime     @default(now())
 
   // Relations
   buyer  User   @relation("BuyerTrades", fields: [buyerId], references: [id])
@@ -94,11 +106,11 @@ model Trade {
 // ESCROW MODEL
 // ===============================
 model Escrow {
-  id        String       @id @default(uuid())
-  tradeId  String       @unique
+  id              String       @id @default(uuid())
+  tradeId         String       @unique
   contractAddress String?
-  status   EscrowStatus @default(locked)
-  createdAt DateTime    @default(now())
+  status          EscrowStatus @default(locked)
+  createdAt       DateTime     @default(now())
 
   // Relations
   trade Trade @relation(fields: [tradeId], references: [id])
