@@ -25,11 +25,48 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      await api.post("/auth/register", form);
-      router.push("/auth/login/login");   // ← important: match your route
+      // Fixed: capture the response
+      const response = await api.post("/auth/register", form);
+
+      console.log("Registration successful:", response.data);
+
+      // Redirect to your nested login route
+      router.push("/auth/login/login");
     } catch (err) {
-      const error = err as AxiosError<{ message: string }>;
-      setError(error?.response?.data?.message || "Registration failed");
+      let displayError = "Registration failed. Please try again.";
+
+      if (err instanceof AxiosError) {
+        const axiosErr = err as AxiosError<any>;
+
+        // Debug: show full response in console
+        console.error("Registration failed - full response:", axiosErr.response);
+
+        const data = axiosErr.response?.data;
+
+        if (data) {
+          // Try to extract the most useful message
+          if (data.message) {
+            displayError = data.message;
+          } else if (data.error) {
+            displayError = data.error;
+          } else if (data.errors) {
+            // Handle validation arrays (very common in Laravel / API backends)
+            const firstErrorKey = Object.keys(data.errors)[0];
+            const firstErrorMessage = data.errors[firstErrorKey]?.[0];
+            if (firstErrorMessage) {
+              displayError = `${firstErrorKey}: ${firstErrorMessage}`;
+            } else {
+              displayError = JSON.stringify(data.errors);
+            }
+          } else {
+            displayError = JSON.stringify(data);
+          }
+        } else if (axiosErr.message) {
+          displayError = axiosErr.message;
+        }
+      }
+
+      setError(displayError);
     } finally {
       setLoading(false);
     }

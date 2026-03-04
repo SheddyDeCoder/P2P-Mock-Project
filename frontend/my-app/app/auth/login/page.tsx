@@ -20,6 +20,7 @@ export default function LoginPage() {
     try {
       const response = await api.post("/auth/login", { email, password });
       const token = response.data?.token;
+
       if (token) {
         localStorage.setItem("token", token);
         router.push("/dashboard");

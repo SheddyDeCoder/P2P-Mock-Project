@@ -6,91 +6,121 @@ import api from "@/lib/api";
 
 export default function DashboardPage() {
   const router = useRouter();
+
+  const [profile, setProfile] = useState<any>(null);
+  const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [activeCount, setActiveCount] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Basic client-side protection (PHASE 4)
     const token = localStorage.getItem("token");
     if (!token) {
-      router.replace("/auth/login/login");
+      router.replace("/auth/login");  // ← adjust if your login route is different
       return;
     }
 
-    const loadData = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const [profileRes, tradesRes] = await Promise.all([
+        setLoading(true);
+        setError(null);
+
+        // Using await api.get – exactly as roadmap requires
+        const [profileResponse, tradesResponse] = await Promise.all([
           api.get("/user/profile"),
           api.get("/user/trades"),
         ]);
 
-        console.log("Trades response:", tradesRes.data); // ← debug
+        setProfile(profileResponse.data);
+        setTrades(tradesResponse.data || []);
 
-        const trades = Array.isArray(tradesRes.data)
-          ? tradesRes.data
-          : tradesRes.data?.trades || [];
+        // Debug: see what the backend actually returns
+        console.log("Profile data:", profileResponse.data);
+        console.log("Trades data:", tradesResponse.data);
 
-        const active = trades.filter((t: any) => 
-          t.status?.toLowerCase().includes("active") || 
-          t.status?.toLowerCase().includes("open")
-        ).length;
-
-        const completed = trades.filter((t: any) => 
-          t.status?.toLowerCase().includes("completed") || 
-          t.status?.toLowerCase().includes("done")
-        ).length;
-
-        setActiveCount(active);
-        setCompletedCount(completed);
       } catch (err: any) {
-        setError(err?.response?.data?.message || "Failed to load dashboard");
+        console.error("Dashboard fetch error:", err);
+        const msg = err.response?.data?.message || "Failed to load dashboard data";
+        setError(msg);
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    fetchDashboardData();
   }, [router]);
 
-  if (loading) return <div style={{ padding: "40px", textAlign: "center" }}>Loading...</div>;
+  // Loading state
+  if (loading) {
+    return (
+      <div style={{ padding: "40px", textAlign: "center" }}>
+        <p>Loading dashboard...</p>
+      </div>
+    );
+  }
 
-  if (error) return <div style={{ padding: "40px", color: "red", textAlign: "center" }}>{error}</div>;
+  // Error state
+  if (error) {
+    return (
+      <div style={{ padding: "40px", color: "red", textAlign: "center" }}>
+        <h2>Error</h2>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>Try again</button>
+      </div>
+    );
+  }
+
+  // Calculate stats (adjust status values based on what your backend actually returns)
+  const activeTrades = trades.filter(t => 
+    t.status?.toLowerCase() === "active" || 
+    t.status?.toLowerCase() === "open" ||
+    t.status?.toLowerCase() === "pending"
+  ).length;
+
+  const completedTrades = trades.filter(t => 
+    t.status?.toLowerCase() === "completed" || 
+    t.status?.toLowerCase() === "done" ||
+    t.status?.toLowerCase() === "finished"
+  ).length;
 
   return (
     <div style={{ padding: "32px", maxWidth: "900px", margin: "0 auto" }}>
-      <h1 style={{ marginBottom: "40px" }}>Dashboard</h1>
+      <h1 style={{ marginBottom: "32px" }}>
+        Dashboard {profile?.name ? `– Welcome, ${profile.name}` : ""}
+      </h1>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "40px" }}>
-        <div style={{ padding: "24px", background: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
-          <h3>Active Trades</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", marginBottom: "40px" }}>
+        <div style={{ padding: "24px", background: "#f8f9fa", borderRadius: "12px", textAlign: "center" }}>
+          <h3 style={{ marginBottom: "12px" }}>Active Trades</h3>
           <div style={{ fontSize: "48px", fontWeight: "bold", color: "#198754" }}>
-            {activeCount}
+            {activeTrades}
           </div>
         </div>
 
-        <div style={{ padding: "24px", background: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
-          <h3>Completed Trades</h3>
+        <div style={{ padding: "24px", background: "#f8f9fa", borderRadius: "12px", textAlign: "center" }}>
+          <h3 style={{ marginBottom: "12px" }}>Completed Trades</h3>
           <div style={{ fontSize: "48px", fontWeight: "bold", color: "#6c757d" }}>
-            {completedCount}
+            {completedTrades}
           </div>
         </div>
       </div>
 
-      <a
-        href="/dashboard/create-trade"
-        style={{
-          display: "inline-block",
-          padding: "12px 28px",
-          background: "#0d6efd",
-          color: "white",
-          borderRadius: "6px",
-          textDecoration: "none",
-          fontWeight: "bold",
-        }}
-      >
-        Create New Trade
-      </a>
+      <div style={{ marginTop: "32px" }}>
+        <a
+          href="/dashboard/create-trade"
+          style={{
+            display: "inline-block",
+            padding: "12px 28px",
+            background: "#0d6efd",
+            color: "white",
+            borderRadius: "8px",
+            textDecoration: "none",
+            fontWeight: "bold",
+          }}
+        >
+          Create New Trade Offer
+        </a>
+      </div>
     </div>
   );
 }
