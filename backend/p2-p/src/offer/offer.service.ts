@@ -31,4 +31,16 @@ export class OfferService {
     });
     return { message: 'Offer created successfully', offer };
   }
+
+  async getAllOffers() {
+    return this.prisma.offer.findMany({
+      select: {
+        id: true,
+        type: true,
+        asset: true,
+        price: true,
+        createdAt: true,
+      },
+    });
+  }
 }

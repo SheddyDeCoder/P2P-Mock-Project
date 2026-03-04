@@ -4,9 +4,10 @@ import { UsersModule } from './users/users.module';
 import { TradesModule } from './trades/trades.module';
 import { EscrowModule } from './escrow/escrow.module';
 import { OfferModule } from './offer/offer.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [UsersModule, TradesModule, EscrowModule, OfferModule],
+  imports: [AuthModule, UsersModule, OfferModule, TradesModule, EscrowModule],
   controllers: [],
   providers: [],
 })

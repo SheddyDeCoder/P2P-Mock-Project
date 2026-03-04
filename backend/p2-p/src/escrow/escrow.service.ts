@@ -4,50 +4,87 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { TradeStatus } from '@prisma/client';
-import { validateTradeTransition } from 'src/commom/utils/trade-status-flow.utils';
+import { EscrowStatus, TradeStatus } from '@prisma/client';
+import { UpdateEscrowDto } from './dto/update-escrow.dto';
 
 @Injectable()
 export class EscrowService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(tradeId: string) {
-    const trade = await this.prisma.trade.findUnique({
-      where: { id: tradeId },
+  async findOne(id: string) {
+    const escrow = await this.prisma.escrow.findUnique({
+      where: { id },
+      include: {
+        trade: {
+          include: {
+            buyer: true,
+            seller: true,
+            offer: true,
+          },
+        },
+      },
     });
 
-    if (!trade) {
-      throw new NotFoundException(`Trade with ID ${tradeId} not found`);
+    if (!escrow) {
+      throw new NotFoundException(`Escrow with ID ${id} not found`);
     }
 
-    if (trade.status !== TradeStatus.pending) {
+    return escrow;
+  }
+
+  async findByTrade(tradeId: string) {
+    const escrow = await this.prisma.escrow.findUnique({
+      where: { tradeId },
+      include: {
+        trade: {
+          include: {
+            buyer: true,
+            seller: true,
+            offer: true,
+          },
+        },
+      },
+    });
+    if (!escrow) {
+      throw new NotFoundException(`Escrow for Trade ID ${tradeId} not found`);
+    }
+    return escrow;
+  }
+
+  async updateStatus(id: string, updateEscrowDto: UpdateEscrowDto) {
+    const { status, contractAddress } = updateEscrowDto;
+    const escrow = await this.prisma.escrow.findUnique({
+      where: { id },
+    });
+    if (!escrow) {
+      throw new NotFoundException(`Escrow with ID ${id} not found`);
+    }
+
+    // Enforce valid status transitions
+    const allowedTransitions: Record<EscrowStatus, EscrowStatus[]> = {
+      locked: [EscrowStatus.released, EscrowStatus.disputed],
+      released: [], // terminal state — no further transitions
+      disputed: [], // terminal state — no further transitions
+    };
+
+    const allowed = allowedTransitions[escrow.status];
+
+    if (!allowed.includes(status)) {
       throw new BadRequestException(
-        'Trade must be in pending status to create escrow',
+        `Invalid status transition from ${escrow.status} to ${status}`,
       );
     }
 
-    await this.prisma.escrow.create({
+    const updatedEscrow = await this.prisma.escrow.update({
+      where: { id },
       data: {
-        tradeId: trade.id,
-        contractAddress: '0x1234567890abcdef', // This should be generated or provided
+        status,
+        ...(contractAddress && { contractAddress }), // only update if provided
       },
     });
-  }
-
-  async updateTradeStatus(tradeId: string, newStatus: TradeStatus) {
-    const trade = await this.prisma.trade.findUnique({
-      where: { id: tradeId },
-    });
-
-    if (!trade) {
-      throw new NotFoundException(`Trade with ID ${tradeId} not found`);
-    }
-
-    validateTradeTransition(trade.status, newStatus);
-
-    await this.prisma.trade.update({
-      where: { id: tradeId },
-      data: { status: newStatus },
-    });
+    return {
+      message: `Escrow status updated to "${updatedEscrow.status}"`,
+      escrow: updatedEscrow,
+    };
   }
 }

@@ -19,4 +19,9 @@ export class OfferController {
   create(@Body(ValidationPipe) createOfferDto: CreateOfferDto) {
     return this.offerService.create(createOfferDto);
   }
+
+  @Get()
+  getAllOffers() {
+    return this.offerService.getAllOffers();
+  }
 }

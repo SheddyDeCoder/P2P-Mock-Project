@@ -30,10 +30,14 @@ export class CreateTradeDto {
   @Min(0.01, { message: 'Amount must be at least 0.01' })
   amount: number;
 
-  @ApiProperty({ description: 'The status of the trade' })
-  @IsOptional()
-  @IsEnum(TradeStatus, {
-    message: 'Status must be a valid trade status: pending, funded, completed',
-  })
-  status: TradeStatus = TradeStatus.pending;
+  // @ApiProperty({ description: 'The status of the trade' })
+  // @IsOptional()
+  // @IsEnum(TradeStatus, {
+  //   message: 'Status must be a valid trade status: pending, funded, completed',
+  // })
+  // status: TradeStatus = TradeStatus.pending;
+
+  // @ApiProperty({ description: 'Unique key to prevent duplicate trades' })
+  // @IsString()
+  // idempotencyKey: string;
 }

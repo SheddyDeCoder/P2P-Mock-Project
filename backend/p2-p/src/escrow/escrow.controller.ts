@@ -8,7 +8,6 @@ import {
   Delete,
 } from '@nestjs/common';
 import { EscrowService } from './escrow.service';
-import { CreateEscrowDto } from './dto/create-escrow.dto';
 import { UpdateEscrowDto } from './dto/update-escrow.dto';
 import { TradeStatus } from '@prisma/client/index-browser';
 import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
@@ -18,26 +17,25 @@ import { ApiParam } from '@nestjs/swagger';
 export class EscrowController {
   constructor(private readonly escrowService: EscrowService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Create escrow and fund trade' })
-  async createEscrow(@Body() dto: CreateEscrowDto) {
-    return this.escrowService.create(dto.tradeId);
+  // GET /escrow/trade/:tradeId  <-- must come BEFORE /escrow/:id
+  // otherwise NestJS will treat "trade" as an :id param
+  @Get('trade/:tradeId')
+  findByTrade(@Param('tradeId') tradeId: string) {
+    return this.escrowService.findByTrade(tradeId);
   }
 
-  // PATCH /trade/:id/status
-  @Patch('trade/:id/status')
-  @ApiOperation({
-    summary: 'Update trade status (pending → funded → completed)',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Trade ID',
-    example: 'b7f7c2b4-6d3a-4c5f-9a12-8c8f8b123456',
-  })
-  async updateTradeStatus(
+  // GET /escrow/:id
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.escrowService.findOne(id);
+  }
+
+  // PATCH /escrow/:id
+  @Patch(':id')
+  updateStatus(
     @Param('id') id: string,
-    @Body() dto: UpdateEscrowDto,
+    @Body() updateEscrowDto: UpdateEscrowDto,
   ) {
-    return this.escrowService.updateTradeStatus(id, dto.status);
+    return this.escrowService.updateStatus(id, updateEscrowDto);
   }
 }
