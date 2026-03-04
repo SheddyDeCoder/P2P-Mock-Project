@@ -6,14 +6,18 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { EscrowService } from './escrow.service';
 import { UpdateEscrowDto } from './dto/update-escrow.dto';
 import { TradeStatus } from '@prisma/client/index-browser';
 import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
-import { ApiParam } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guard/jwt.guard';
 
 @Controller('escrow')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
 export class EscrowController {
   constructor(private readonly escrowService: EscrowService) {}
 

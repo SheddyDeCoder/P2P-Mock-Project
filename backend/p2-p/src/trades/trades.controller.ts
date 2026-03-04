@@ -7,14 +7,18 @@ import {
   Param,
   Delete,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { TradesService } from './trades.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { TradeStatus } from '@prisma/client/index-browser';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
 import { UpdateTradeStatusDto } from './dto/update-trade.dto';
+import { JwtAuthGuard } from 'src/auth/guard/jwt.guard';
 
 @Controller('trades')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
 export class TradesController {
   constructor(private readonly tradesService: TradesService) {}
 

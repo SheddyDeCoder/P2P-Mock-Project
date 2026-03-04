@@ -7,12 +7,15 @@ import {
   Param,
   Delete,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register-auth.dto';
 import { LoginDto } from './dto/loginDto.dto';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from './guard/jwt.guard';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -27,6 +30,8 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @Delete('logout/:id')
   @ApiProperty({ example: '1', description: 'The ID of the user to logout' })
   logout(@Param('id', ValidationPipe) id: string) {

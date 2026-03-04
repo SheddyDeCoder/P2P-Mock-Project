@@ -21,6 +21,10 @@ async function bootstrap() {
     .setDescription('The P2p-Pay API description')
     .setVersion('1.0')
     .addTag('p2p-pay')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
+      'JWT-auth',
+    )
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);

@@ -7,11 +7,16 @@ import {
   Param,
   Delete,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { OfferService } from './offer.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
+import { JwtAuthGuard } from 'src/auth/guard/jwt.guard';
+import { ApiBearerAuth } from '@nestjs/swagger/dist/decorators/api-bearer.decorator';
 
 @Controller('offers')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
 export class OfferController {
   constructor(private readonly offerService: OfferService) {}
 
