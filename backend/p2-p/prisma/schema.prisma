@@ -30,6 +30,23 @@ enum EscrowStatus {
   disputed
 }
 
+enum FundingType {
+  deposit
+  withdrawal
+}
+
+enum FundingStatus {
+  pending
+  completed
+  failed
+}
+
+enum SwapStatus {
+  pending
+  completed
+  failed
+}
+
 model User {
   id             String   @id @default(uuid())
   email          String   @unique
@@ -42,6 +59,43 @@ model User {
   buyTrades  Trade[] @relation("BuyerTrades")
   sellTrades Trade[] @relation("SellerTrades")
   offers     Offer[]
+
+  fundings Funding[] // new
+  swaps    Swap[] //  new
+}
+
+// ===============================
+// FUNDING MODEL
+// ===============================
+model Funding {
+  id        String        @id @default(uuid())
+  userId    String
+  type      FundingType
+  asset     String // e.g. "BTC", "USD", "NGN"
+  amount    Decimal
+  status    FundingStatus @default(pending)
+  reference String        @unique // idempotency for funding
+  createdAt DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ===============================
+// SWAP MODEL
+// ===============================
+model Swap {
+  id         String     @id @default(uuid())
+  userId     String
+  fromAsset  String // e.g. "BTC"
+  toAsset    String // e.g. "USD"
+  fromAmount Decimal // amount being swapped
+  toAmount   Decimal // amount received after swap
+  rate       Decimal // exchange rate used
+  status     SwapStatus @default(pending)
+  reference  String     @unique
+  createdAt  DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Offer {
