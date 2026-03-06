@@ -1,41 +1,35 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guard/jwt.guard';
 import { EscrowService } from './escrow.service';
 import { UpdateEscrowDto } from './dto/update-escrow.dto';
-import { TradeStatus } from '@prisma/client/index-browser';
-import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
-import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/auth/guard/jwt.guard';
+import { RolesGuard } from 'src/auth/guard/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
-@Controller('escrow')
+@ApiTags('Escrow')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller('escrow')
 export class EscrowController {
   constructor(private readonly escrowService: EscrowService) {}
 
-  // GET /escrow/trade/:tradeId  <-- must come BEFORE /escrow/:id
-  // otherwise NestJS will treat "trade" as an :id param
   @Get('trade/:tradeId')
+  @Roles('admin', 'moderator')
+  @ApiOperation({ summary: 'Get escrow by trade ID' })
   findByTrade(@Param('tradeId') tradeId: string) {
     return this.escrowService.findByTrade(tradeId);
   }
 
-  // GET /escrow/:id
   @Get(':id')
+  @Roles('admin', 'moderator')
+  @ApiOperation({ summary: 'Get escrow by ID' })
   findOne(@Param('id') id: string) {
     return this.escrowService.findOne(id);
   }
 
-  // PATCH /escrow/:id
   @Patch(':id')
+  @Roles('admin', 'moderator')
+  @ApiOperation({ summary: 'Update escrow status (release or dispute)' })
   updateStatus(
     @Param('id') id: string,
     @Body() updateEscrowDto: UpdateEscrowDto,

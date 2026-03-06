@@ -53,9 +53,14 @@ export class EscrowService {
 
   async updateStatus(id: string, updateEscrowDto: UpdateEscrowDto) {
     const { status, contractAddress } = updateEscrowDto;
+
     const escrow = await this.prisma.escrow.findUnique({
       where: { id },
+      include: {
+        trade: true,
+      },
     });
+
     if (!escrow) {
       throw new NotFoundException(`Escrow with ID ${id} not found`);
     }
@@ -63,8 +68,8 @@ export class EscrowService {
     // Enforce valid status transitions
     const allowedTransitions: Record<EscrowStatus, EscrowStatus[]> = {
       locked: [EscrowStatus.released, EscrowStatus.disputed],
-      released: [], // terminal state — no further transitions
-      disputed: [], // terminal state — no further transitions
+      released: [], // terminal state
+      disputed: [], // terminal state
     };
 
     const allowed = allowedTransitions[escrow.status];
@@ -75,13 +80,52 @@ export class EscrowService {
       );
     }
 
+    if (status === EscrowStatus.released) {
+      const { buyerId, sellerId, amount } = escrow.trade;
+
+      const [updatedEscrow] = await this.prisma.$transaction([
+        // 1. Update escrow → released
+        this.prisma.escrow.update({
+          where: { id },
+          data: {
+            status: EscrowStatus.released,
+            ...(contractAddress && { contractAddress }),
+          },
+        }),
+
+        // 2. Update trade → completed
+        this.prisma.trade.update({
+          where: { id: escrow.tradeId },
+          data: { status: TradeStatus.completed },
+        }),
+
+        // 3. Deduct from seller
+        this.prisma.user.update({
+          where: { id: sellerId },
+          data: { balance: { decrement: amount } },
+        }),
+
+        // 4. Add to buyer
+        this.prisma.user.update({
+          where: { id: buyerId },
+          data: { balance: { increment: amount } },
+        }),
+      ]);
+
+      return {
+        message: 'Escrow released — trade completed and balances updated',
+        escrow: updatedEscrow,
+      };
+    }
+
     const updatedEscrow = await this.prisma.escrow.update({
       where: { id },
       data: {
         status,
-        ...(contractAddress && { contractAddress }), // only update if provided
+        ...(contractAddress && { contractAddress }),
       },
     });
+
     return {
       message: `Escrow status updated to "${updatedEscrow.status}"`,
       escrow: updatedEscrow,

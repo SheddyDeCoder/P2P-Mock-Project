@@ -86,7 +86,6 @@ export class FundingService {
           user: {
             select: {
               email: true,
-              balance: true,
               walletAddress: true,
               username: true,
             },

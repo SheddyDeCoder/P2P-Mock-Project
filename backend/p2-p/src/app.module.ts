@@ -7,9 +7,10 @@ import { OfferModule } from './offer/offer.module';
 import { AuthModule } from './auth/auth.module';
 import { FundingModule } from './funding/funding.module';
 import { SwapModule } from './swap/swap.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, OfferModule, TradesModule, EscrowModule, FundingModule, SwapModule],
+  imports: [AuthModule, UsersModule, OfferModule, TradesModule, EscrowModule, FundingModule, SwapModule, WalletModule],
   controllers: [],
   providers: [],
 })

@@ -1,18 +1,26 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsPositive, IsString, Min } from 'class-validator';
+import { IsEnum, IsNumber, IsPositive, IsString, Min } from 'class-validator';
 
 export class CreateSwapDto {
-  @ApiProperty({ example: 'BTC', description: 'Asset to swap from' })
+  @ApiProperty({ example: 'USD' })
   @IsString()
   fromAsset: string;
 
-  @ApiProperty({ example: 'USD', description: 'Asset to swap to' })
+  @ApiProperty({ example: 'BTC' })
   @IsString()
   toAsset: string;
 
-  @ApiProperty({ example: 0.5, description: 'Amount to swap' })
+  @ApiProperty({ example: 500 })
   @IsNumber()
   @IsPositive()
-  @Min(0.00001)
   fromAmount: number;
+
+  @ApiProperty({
+    example: 'balance_to_wallet',
+    enum: ['balance_to_wallet', 'wallet_to_balance'],
+    description:
+      'balance_to_wallet: spend balance to fill wallet | wallet_to_balance: sell wallet asset back to balance',
+  })
+  @IsEnum(['balance_to_wallet', 'wallet_to_balance'])
+  direction: 'balance_to_wallet' | 'wallet_to_balance';
 }

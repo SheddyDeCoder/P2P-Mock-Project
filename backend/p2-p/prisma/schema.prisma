@@ -7,6 +7,100 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  hashedPassword String
+  balance        Decimal   @default(0)
+  walletAddress  String?   @unique
+  username       String?
+  createdAt      DateTime  @default(now())
+  role           Role      @default(user)
+  fundings       Funding[]
+  offers         Offer[]
+  swaps          Swap[]
+  wallets        Wallet[]
+  buyTrades      Trade[]   @relation("BuyerTrades")
+  sellTrades     Trade[]   @relation("SellerTrades")
+}
+
+model Wallet {
+  id            String   @id @default(uuid())
+  userId        String
+  walletAddress String // the user's wallet address
+  asset         String // "BTC", "ETH", "USD", "NGN"
+  balance       Decimal  @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, asset]) // one wallet per asset per user
+  @@unique([walletAddress, asset]) // one address per asset
+}
+
+model Funding {
+  id        String        @id @default(uuid())
+  userId    String
+  type      FundingType
+  asset     String
+  amount    Decimal
+  status    FundingStatus @default(pending)
+  reference String        @unique
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id])
+}
+
+model Swap {
+  id         String     @id @default(uuid())
+  userId     String
+  fromAsset  String
+  toAsset    String
+  fromAmount Decimal
+  toAmount   Decimal
+  rate       Decimal
+  status     SwapStatus @default(pending)
+  reference  String     @unique
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id])
+}
+
+model Offer {
+  id        String      @id @default(uuid())
+  userId    String
+  type      OfferType
+  asset     String
+  price     Decimal
+  status    OfferStatus @default(active)
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id])
+  trades    Trade[]
+}
+
+model Trade {
+  id             String      @id @default(uuid())
+  buyerId        String
+  sellerId       String
+  offerId        String
+  amount         Decimal
+  idempotencyKey String      @unique
+  status         TradeStatus @default(pending)
+  createdAt      DateTime    @default(now())
+  escrow         Escrow?
+  buyer          User        @relation("BuyerTrades", fields: [buyerId], references: [id])
+  offer          Offer       @relation(fields: [offerId], references: [id])
+  seller         User        @relation("SellerTrades", fields: [sellerId], references: [id])
+}
+
+model Escrow {
+  id              String       @id @default(uuid())
+  tradeId         String       @unique
+  contractAddress String?
+  status          EscrowStatus @default(locked)
+  createdAt       DateTime     @default(now())
+  trade           Trade        @relation(fields: [tradeId], references: [id])
+}
+
 enum TradeStatus {
   pending
   funded
@@ -47,92 +141,8 @@ enum SwapStatus {
   failed
 }
 
-model User {
-  id             String   @id @default(uuid())
-  email          String   @unique
-  hashedPassword String
-  balance        Decimal  @default(0)
-  walletAddress  String?  @unique
-  username       String?
-  createdAt      DateTime @default(now())
-
-  buyTrades  Trade[] @relation("BuyerTrades")
-  sellTrades Trade[] @relation("SellerTrades")
-  offers     Offer[]
-
-  fundings Funding[] // new
-  swaps    Swap[] //  new
-}
-
-// ===============================
-// FUNDING MODEL
-// ===============================
-model Funding {
-  id        String        @id @default(uuid())
-  userId    String
-  type      FundingType
-  asset     String // e.g. "BTC", "USD", "NGN"
-  amount    Decimal
-  status    FundingStatus @default(pending)
-  reference String        @unique // idempotency for funding
-  createdAt DateTime      @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-// ===============================
-// SWAP MODEL
-// ===============================
-model Swap {
-  id         String     @id @default(uuid())
-  userId     String
-  fromAsset  String // e.g. "BTC"
-  toAsset    String // e.g. "USD"
-  fromAmount Decimal // amount being swapped
-  toAmount   Decimal // amount received after swap
-  rate       Decimal // exchange rate used
-  status     SwapStatus @default(pending)
-  reference  String     @unique
-  createdAt  DateTime   @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-model Offer {
-  id        String      @id @default(uuid())
-  userId    String
-  type      OfferType
-  asset     String
-  price     Decimal
-  status    OfferStatus @default(active)
-  createdAt DateTime    @default(now())
-
-  user   User    @relation(fields: [userId], references: [id])
-  trades Trade[]
-}
-
-model Trade {
-  id             String      @id @default(uuid())
-  buyerId        String
-  sellerId       String
-  offerId        String
-  amount         Decimal
-  idempotencyKey String      @unique
-  status         TradeStatus @default(pending)
-  createdAt      DateTime    @default(now())
-
-  buyer  User    @relation("BuyerTrades", fields: [buyerId], references: [id])
-  seller User    @relation("SellerTrades", fields: [sellerId], references: [id])
-  offer  Offer   @relation(fields: [offerId], references: [id])
-  escrow Escrow?
-}
-
-model Escrow {
-  id              String       @id @default(uuid())
-  tradeId         String       @unique
-  contractAddress String?
-  status          EscrowStatus @default(locked)
-  createdAt       DateTime     @default(now())
-
-  trade Trade @relation(fields: [tradeId], references: [id])
+enum Role {
+  user
+  admin
+  moderator
 }
