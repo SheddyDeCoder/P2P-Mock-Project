@@ -53,7 +53,6 @@ export class AuthService {
         username,
         hashedPassword,
         walletAddress,
-        role: registerDto.role || Role.user,
       },
     });
     return {

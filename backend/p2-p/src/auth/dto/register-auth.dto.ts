@@ -14,10 +14,6 @@ export class RegisterDto {
   @IsString()
   username: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  readonly role?: Role;
-
   @ApiProperty({ example: 'P@ssw0rd', description: 'The password of the user' })
   @IsString()
   password: string;

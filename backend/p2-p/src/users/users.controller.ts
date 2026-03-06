@@ -15,6 +15,7 @@ import { CurrentUser } from './decorator/current-user.decorator';
 import { RolesGuard } from 'src/auth/guard/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UpdateProfileDto } from './dto/update-user.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
 
 @Controller('users')
 @ApiBearerAuth('JWT-auth')
@@ -36,6 +37,13 @@ export class UsersController {
     @Body(ValidationPipe) dto: UpdateProfileDto,
   ) {
     return this.usersService.updateProfile(user.id, dto);
+  }
+
+  @Patch(':id/role')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Update user role — admin only' })
+  updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
+    return this.usersService.updateRole(id, dto.role);
   }
 
   @Get(':id')
