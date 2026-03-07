@@ -15,7 +15,8 @@ model User {
   walletAddress  String?   @unique
   username       String?
   createdAt      DateTime  @default(now())
-  role           Role      @default(user)
+  role           Role      @default(USER)
+
   fundings       Funding[]
   offers         Offer[]
   swaps          Swap[]
@@ -27,16 +28,16 @@ model User {
 model Wallet {
   id            String   @id @default(uuid())
   userId        String
-  walletAddress String // the user's wallet address
-  asset         String // "BTC", "ETH", "USD", "NGN"
+  walletAddress String
+  asset         String
   balance       Decimal  @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
-  @@unique([userId, asset]) // one wallet per asset per user
-  @@unique([walletAddress, asset]) // one address per asset
+  @@unique([userId, asset])
+  @@unique([walletAddress, asset])
 }
 
 model Funding {
@@ -45,10 +46,11 @@ model Funding {
   type      FundingType
   asset     String
   amount    Decimal
-  status    FundingStatus @default(pending)
+  status    FundingStatus @default(PENDING)
   reference String        @unique
   createdAt DateTime      @default(now())
-  user      User          @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Swap {
@@ -59,10 +61,11 @@ model Swap {
   fromAmount Decimal
   toAmount   Decimal
   rate       Decimal
-  status     SwapStatus @default(pending)
+  status     SwapStatus @default(PENDING)
   reference  String     @unique
   createdAt  DateTime   @default(now())
-  user       User       @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Offer {
@@ -71,10 +74,11 @@ model Offer {
   type      OfferType
   asset     String
   price     Decimal
-  status    OfferStatus @default(active)
+  status    OfferStatus @default(ACTIVE)
   createdAt DateTime    @default(now())
-  user      User        @relation(fields: [userId], references: [id])
-  trades    Trade[]
+
+  user   User   @relation(fields: [userId], references: [id])
+  trades Trade[]
 }
 
 model Trade {
@@ -84,65 +88,68 @@ model Trade {
   offerId        String
   amount         Decimal
   idempotencyKey String      @unique
-  status         TradeStatus @default(pending)
+  status         TradeStatus @default(PENDING)
   createdAt      DateTime    @default(now())
-  escrow         Escrow?
-  buyer          User        @relation("BuyerTrades", fields: [buyerId], references: [id])
-  offer          Offer       @relation(fields: [offerId], references: [id])
-  seller         User        @relation("SellerTrades", fields: [sellerId], references: [id])
+
+  escrow Escrow?
+
+  buyer  User  @relation("BuyerTrades", fields: [buyerId], references: [id])
+  seller User  @relation("SellerTrades", fields: [sellerId], references: [id])
+  offer  Offer @relation(fields: [offerId], references: [id])
 }
 
 model Escrow {
   id              String       @id @default(uuid())
   tradeId         String       @unique
   contractAddress String?
-  status          EscrowStatus @default(locked)
+  status          EscrowStatus @default(LOCKED)
   createdAt       DateTime     @default(now())
-  trade           Trade        @relation(fields: [tradeId], references: [id])
+
+  trade Trade @relation(fields: [tradeId], references: [id])
 }
 
 enum TradeStatus {
-  pending
-  funded
-  completed
-  cancelled
+  PENDING
+  FUNDED
+  COMPLETED
+  CANCELLED
 }
 
 enum OfferType {
-  buy
-  sell
+  BUY
+  SELL
 }
 
 enum OfferStatus {
-  active
-  closed
+  ACTIVE
+  CLOSED
 }
 
 enum EscrowStatus {
-  locked
-  released
-  disputed
+  LOCKED
+  RELEASED
+  DISPUTED
 }
 
 enum FundingType {
-  deposit
-  withdrawal
+  DEPOSIT
+  WITHDRAWAL
 }
 
 enum FundingStatus {
-  pending
-  completed
-  failed
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 enum SwapStatus {
-  pending
-  completed
-  failed
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 enum Role {
-  user
-  admin
-  moderator
+  USER
+  ADMIN
+  MODERATOR
 }
