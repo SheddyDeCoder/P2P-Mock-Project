@@ -1,3 +1,4 @@
+// app/register/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -8,12 +9,13 @@ import { AxiosError } from "axios";
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    name: "",
+    username: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,47 +24,78 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setError(null);
+
+    // Basic client-side checks
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      setLoading(false);
+      return;
+    }
+
+    if (form.username.trim().length < 3) {
+      setError("Username must be at least 3 characters");
+      setLoading(false);
+      return;
+    }
 
     try {
-      // Fixed: capture the response
-      const response = await api.post("/auth/register", form);
+      const payload = {
+        username: form.username.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      };
 
-      console.log("Registration successful:", response.data);
+      const response = await api.post("/auth/register", payload);
 
-      // Redirect to your nested login route
-      router.push("/auth/login/login");
+      console.log("Registration successful:", response.status, response.data);
+
+      const token = response.data?.token;
+
+      // Optional: auto-login if backend returns token on register
+      if (token) {
+        localStorage.setItem("token", token);
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      // Normal flow: success → go to login
+      alert("Registration successful! Please log in.");
+      router.push("/login");
+
     } catch (err) {
       let displayError = "Registration failed. Please try again.";
 
       if (err instanceof AxiosError) {
         const axiosErr = err as AxiosError<any>;
-
-        // Debug: show full response in console
-        console.error("Registration failed - full response:", axiosErr.response);
+        console.error("Registration failed:", {
+          status: axiosErr.response?.status,
+          data: axiosErr.response?.data,
+          message: axiosErr.message,
+        });
 
         const data = axiosErr.response?.data;
 
         if (data) {
-          // Try to extract the most useful message
           if (data.message) {
             displayError = data.message;
           } else if (data.error) {
             displayError = data.error;
           } else if (data.errors) {
-            // Handle validation arrays (very common in Laravel / API backends)
-            const firstErrorKey = Object.keys(data.errors)[0];
-            const firstErrorMessage = data.errors[firstErrorKey]?.[0];
-            if (firstErrorMessage) {
-              displayError = `${firstErrorKey}: ${firstErrorMessage}`;
-            } else {
-              displayError = JSON.stringify(data.errors);
-            }
+            const firstKey = Object.keys(data.errors)[0];
+            displayError = data.errors[firstKey]?.[0] || JSON.stringify(data.errors);
           } else {
             displayError = JSON.stringify(data);
           }
-        } else if (axiosErr.message) {
-          displayError = axiosErr.message;
+        } else {
+          displayError = axiosErr.message || "Network or server issue";
         }
       }
 
@@ -77,43 +110,80 @@ export default function RegisterPage() {
       <h1 style={{ textAlign: "center", marginBottom: "32px" }}>Register</h1>
 
       {error && (
-        <div style={{ color: "red", marginBottom: "16px", textAlign: "center" }}>
+        <div
+          style={{
+            color: "red",
+            marginBottom: "16px",
+            textAlign: "center",
+            padding: "10px",
+            background: "#ffebee",
+            borderRadius: "6px",
+          }}
+        >
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: "16px" }}>
-          <label style={{ display: "block", marginBottom: "6px" }}>Full Name</label>
+          <label style={{ display: "block", marginBottom: "6px", fontWeight: 500 }}>
+            Username
+          </label>
           <input
-            name="name"
-            value={form.name}
+            name="username"
+            value={form.username}
             onChange={handleChange}
             required
+            minLength={3}
+            autoComplete="username"
+            placeholder="Choose a username"
             style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
           />
         </div>
 
         <div style={{ marginBottom: "16px" }}>
-          <label style={{ display: "block", marginBottom: "6px" }}>Email</label>
+          <label style={{ display: "block", marginBottom: "6px", fontWeight: 500 }}>
+            Email
+          </label>
           <input
             name="email"
             type="email"
             value={form.email}
             onChange={handleChange}
             required
+            autoComplete="email"
+            placeholder="your.email@example.com"
             style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
           />
         </div>
 
-        <div style={{ marginBottom: "24px" }}>
-          <label style={{ display: "block", marginBottom: "6px" }}>Password</label>
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ display: "block", marginBottom: "6px", fontWeight: 500 }}>
+            Password
+          </label>
           <input
             name="password"
             type="password"
             value={form.password}
             onChange={handleChange}
             required
+            minLength={6}
+            autoComplete="new-password"
+            style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+          />
+        </div>
+
+        <div style={{ marginBottom: "24px" }}>
+          <label style={{ display: "block", marginBottom: "6px", fontWeight: 500 }}>
+            Confirm Password
+          </label>
+          <input
+            name="confirmPassword"
+            type="password"
+            value={form.confirmPassword || ""}
+            onChange={handleChange}
+            required
+            autoComplete="new-password"
             style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
           />
         </div>
@@ -132,14 +202,14 @@ export default function RegisterPage() {
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? "Creating..." : "Register"}
+          {loading ? "Creating account..." : "Register"}
         </button>
       </form>
 
       <p style={{ textAlign: "center", marginTop: "24px" }}>
         Already have an account?{" "}
-        <a href="/auth/login/login" style={{ color: "#0066cc" }}>
-          Login
+        <a href="/login" style={{ color: "#0066cc", textDecoration: "underline" }}>
+          Login here
         </a>
       </p>
     </div>
