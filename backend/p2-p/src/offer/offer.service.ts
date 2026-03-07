@@ -6,8 +6,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class OfferService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createOfferDto: CreateOfferDto) {
-    const { userId, type, asset, price } = createOfferDto;
+  async create(userId: string, createOfferDto: CreateOfferDto) {
+    const { type, asset, price } = createOfferDto;
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {

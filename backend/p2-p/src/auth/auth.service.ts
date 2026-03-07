@@ -5,6 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { generateWalletCode } from './utils/walletAddress.utils';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -80,12 +81,14 @@ export class AuthService {
     const token = await this.generateToken({
       sub: user.id,
       email: user.email,
+      role: user.role as Role,
       username: user.username,
     });
 
     return {
       message: 'Login successful',
       token,
+      role: user.role,
     };
   }
 
@@ -110,6 +113,7 @@ export class AuthService {
     sub: string;
     email: string;
     username: string | null;
+    role: Role;
   }): Promise<string> {
     return this.jwt.signAsync(payload);
   }

@@ -14,6 +14,7 @@ import { RegisterDto } from './dto/register-auth.dto';
 import { LoginDto } from './dto/loginDto.dto';
 import { ApiBearerAuth, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from './guard/jwt.guard';
+import { Roles } from './decorators/roles.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -32,6 +33,7 @@ export class AuthController {
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
+  @Roles('admin', 'user')
   @Delete('logout/:id')
   @ApiProperty({ example: '1', description: 'The ID of the user to logout' })
   logout(@Param('id', ValidationPipe) id: string) {

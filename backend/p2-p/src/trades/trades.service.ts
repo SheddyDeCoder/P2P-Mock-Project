@@ -12,8 +12,52 @@ import { v4 as uuidv4 } from 'uuid';
 export class TradesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createTradeDto: CreateTradeDto) {
-    const { buyerId, sellerId, offerId, amount } = createTradeDto;
+  async create(currentUserId: string, createTradeDto: CreateTradeDto) {
+    const { counterpartyId, amount } = createTradeDto;
+
+    if (currentUserId === counterpartyId) {
+      throw new BadRequestException('You cannot trade with yourself');
+    }
+
+    // Verify counterparty exists
+    const counterparty = await this.prisma.user.findUnique({
+      where: { id: counterpartyId },
+    });
+
+    if (!counterparty) {
+      throw new NotFoundException(
+        `User with ID ${counterpartyId} does not exist`,
+      );
+    }
+
+    const offer = await this.prisma.offer.findFirst({
+      where: {
+        userId: currentUserId, // must be the current user's offer
+        status: 'active', // must be active
+      },
+      orderBy: { createdAt: 'desc' }, // most recent offer first
+    });
+
+    if (!offer) {
+      throw new NotFoundException(
+        'You have no active offer. Please create an offer first before initiating a trade',
+      );
+    }
+
+    const buyerId = offer.type === 'buy' ? currentUserId : counterpartyId;
+    const sellerId = offer.type === 'sell' ? currentUserId : counterpartyId;
+
+    const buyer = await this.prisma.user.findUnique({ where: { id: buyerId } });
+
+    if (!buyer) {
+      throw new NotFoundException(`Buyer with ID ${buyerId} does not exist`);
+    }
+
+    if (Number(buyer.balance) < amount) {
+      throw new BadRequestException(
+        `Insufficient funds — buyer balance is ${buyer.balance}, required ${amount}`,
+      );
+    }
 
     const idempotencyKey = uuidv4();
 
@@ -21,6 +65,7 @@ export class TradesService {
       where: { idempotencyKey },
       include: { escrow: true },
     });
+
     if (existingTrade) {
       return {
         message: 'A trade with the same idempotency key already exists',
@@ -29,39 +74,12 @@ export class TradesService {
       };
     }
 
-    if (buyerId === sellerId) {
-      return { message: 'Buyer and seller cannot be the same' };
-    }
-
-    const buyer = await this.prisma.user.findUnique({ where: { id: buyerId } });
-    if (!buyer) {
-      return { message: `Buyer with the given ID ${buyerId} does not exist` };
-    }
-
-    const seller = await this.prisma.user.findUnique({
-      where: { id: sellerId },
-    });
-    if (!seller) {
-      return { message: `Seller with the given ID ${sellerId} does not exist` };
-    }
-
-    const offer = await this.prisma.offer.findUnique({
-      where: { id: offerId },
-    });
-    if (!offer) {
-      return { message: `Offer with the given ID ${offerId} does not exist` };
-    }
-
-    if (offer.status === 'closed') {
-      return { message: 'This Offer is closed' };
-    }
-
     const results = await this.prisma.$transaction(async (tx) => {
       const trade = await tx.trade.create({
         data: {
           buyerId,
           sellerId,
-          offerId,
+          offerId: offer.id, // auto-determined from current user's active offer
           amount,
           idempotencyKey,
           status: TradeStatus.pending,
@@ -82,6 +100,11 @@ export class TradesService {
       message: 'Trade created successfully',
       trade: results.trade,
       escrow: results.escrow,
+      matchedOffer: {
+        id: offer.id,
+        type: offer.type,
+        asset: offer.asset,
+      },
     };
   }
 
@@ -162,6 +185,22 @@ export class TradesService {
         offer: true,
         escrow: true,
       },
+    });
+  }
+
+  async findAllMyTrade(userId: string) {
+    return this.prisma.trade.findMany({
+      where: {
+        OR: [
+          { buyerId: userId }, // trades where I am the buyer
+          { sellerId: userId }, // trades where I am the seller
+        ],
+      },
+      include: {
+        offer: true,
+        escrow: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 }
