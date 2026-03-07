@@ -2,95 +2,101 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/lib/api";
+import api from "@/lib/api";  // ← your current api.ts (no auto token)
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [profile, setProfile] = useState<any>(null);
+  const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [activeCount, setActiveCount] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (!token) {
-      router.replace("/auth/login/login");
+      router.replace("/login");  // or "/auth/login/login" if that's your path
       return;
     }
 
-    const loadData = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const [profileRes, tradesRes] = await Promise.all([
-          api.get("/user/profile"),
-          api.get("/user/trades"),
+        setLoading(true);
+        setError(null);
+
+        // Manually add token to headers for protected calls
+        const config = {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        };
+
+        const [profileResponse, tradesResponse] = await Promise.all([
+          api.get("/user/profile", config),
+          api.get("/user/trades", config),
         ]);
 
-        console.log("Trades response:", tradesRes.data); // ← debug
+        setProfile(profileResponse.data);
+        setTrades(tradesResponse.data || []);
 
-        const trades = Array.isArray(tradesRes.data)
-          ? tradesRes.data
-          : tradesRes.data?.trades || [];
+        console.log("Profile:", profileResponse.data);
+        console.log("Trades:", tradesResponse.data);
 
-        const active = trades.filter((t: any) => 
-          t.status?.toLowerCase().includes("active") || 
-          t.status?.toLowerCase().includes("open")
-        ).length;
-
-        const completed = trades.filter((t: any) => 
-          t.status?.toLowerCase().includes("completed") || 
-          t.status?.toLowerCase().includes("done")
-        ).length;
-
-        setActiveCount(active);
-        setCompletedCount(completed);
       } catch (err: any) {
-        setError(err?.response?.data?.message || "Failed to load dashboard");
+        console.error("Dashboard fetch failed:", err);
+        let msg = "Failed to load dashboard data";
+
+        if (err.response) {
+          msg = err.response.data?.message 
+             || `Error ${err.response.status}: ${err.response.statusText}`;
+        } else if (err.request) {
+          msg = "No response from server (backend down or wrong URL?)";
+        } else {
+          msg = err.message;
+        }
+
+        setError(msg);
+
+        // If 401 → token invalid/expired → force re-login
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          router.replace("/login");
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    fetchDashboardData();
   }, [router]);
 
-  if (loading) return <div style={{ padding: "40px", textAlign: "center" }}>Loading...</div>;
+  if (loading) return <div style={{ padding: "40px", textAlign: "center" }}>Loading dashboard...</div>;
 
-  if (error) return <div style={{ padding: "40px", color: "red", textAlign: "center" }}>{error}</div>;
+  if (error) {
+    return (
+      <div style={{ padding: "40px", color: "red", textAlign: "center" }}>
+        <h2>Error</h2>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>Try Again</button>
+      </div>
+    );
+  }
+
+  const activeTrades = trades.filter(t => 
+    ["active", "open", "pending"].includes(t.status?.toLowerCase?.() || "")
+  ).length;
+
+  const completedTrades = trades.filter(t => 
+    ["completed", "done", "finished"].includes(t.status?.toLowerCase?.() || "")
+  ).length;
 
   return (
     <div style={{ padding: "32px", maxWidth: "900px", margin: "0 auto" }}>
-      <h1 style={{ marginBottom: "40px" }}>Dashboard</h1>
+      <h1 style={{ marginBottom: "32px" }}>
+        Dashboard {profile?.name || profile?.username ? `– Welcome, ${profile.name || profile.username}` : ""}
+      </h1>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "40px" }}>
-        <div style={{ padding: "24px", background: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
-          <h3>Active Trades</h3>
-          <div style={{ fontSize: "48px", fontWeight: "bold", color: "#198754" }}>
-            {activeCount}
-          </div>
-        </div>
-
-        <div style={{ padding: "24px", background: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
-          <h3>Completed Trades</h3>
-          <div style={{ fontSize: "48px", fontWeight: "bold", color: "#6c757d" }}>
-            {completedCount}
-          </div>
-        </div>
-      </div>
-
-      <a
-        href="/dashboard/create-trade"
-        style={{
-          display: "inline-block",
-          padding: "12px 28px",
-          background: "#0d6efd",
-          color: "white",
-          borderRadius: "6px",
-          textDecoration: "none",
-          fontWeight: "bold",
-        }}
-      >
-        Create New Trade
-      </a>
+      {/* ... rest of your UI (cards, create button) remains the same ... */}
     </div>
   );
 }

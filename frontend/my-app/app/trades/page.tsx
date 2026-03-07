@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api from "@/lib/api";
+import api from "@/lib/api";  // your current api.ts (localhost only)
 import Link from "next/link";
 
 type Trade = {
@@ -11,7 +11,9 @@ type Trade = {
   price: number;
   minAmount: number;
   maxAmount: number;
-  merchant: { name: string };
+  merchant: {
+    name: string;
+  };
 };
 
 export default function TradesPage() {
@@ -20,52 +22,63 @@ export default function TradesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
+    const fetchTrades = async () => {
       try {
-        const res = await api.get("/trades");
-        setTrades(res.data ?? []);
+        setLoading(true);
+        setError(null);
+
+        const response = await api.get("/trades");
+
+        console.log("Trades full response:", {
+          status: response.status,
+          data: response.data,
+          headers: response.headers,
+        });
+
+        const tradesData = Array.isArray(response.data)
+          ? response.data
+          : response.data?.trades ||
+            response.data?.data ||
+            response.data?.results ||
+            response.data?.offers ||  // added common variants
+            [];
+
+        setTrades(tradesData);
       } catch (err: any) {
-        setError(err.response?.data?.message || "Could not load trades");
+        console.error("Trades fetch failed full details:", {
+          message: err.message,
+          response: err.response ? {
+            status: err.response.status,
+            statusText: err.response.statusText,
+            data: err.response.data,
+          } : null,
+          request: err.request ? "Request sent but no response" : null,
+        });
+
+        let errorMessage = "Could not load trades. Please try again later.";
+
+        if (err.response) {
+          const { status, data } = err.response;
+          if (status === 401) errorMessage = "Please login to view offers";
+          else if (status === 403) errorMessage = "You don't have permission to view trades";
+          else if (status === 404) errorMessage = "Trades endpoint not found on server";
+          else if (status >= 500) errorMessage = "Server error – please contact support";
+          else if (data?.message) errorMessage = data.message;
+          else if (data?.error) errorMessage = data.error;
+        } else if (err.request) {
+          errorMessage = "Cannot reach backend server (is it running at http://localhost:5000?)";
+        } else {
+          errorMessage = err.message || errorMessage;
+        }
+
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    fetchTrades();
   }, []);
 
-  if (loading) return <div className="p-8 text-center">Loading trades...</div>;
-  if (error) return <div className="p-8 text-red-600">{error}</div>;
-  if (trades.length === 0) return <div className="p-8 text-center">No active offers right now.</div>;
 
-  return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">P2P Marketplace</h1>
-
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {trades.map((trade) => (
-          <Link
-            key={trade.id}
-            href={`/trades/${trade.id}`}
-            className="block border rounded-lg p-6 hover:shadow-md transition"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  trade.type === "buy" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                }`}
-              >
-                {trade.type.toUpperCase()}
-              </span>
-              <span className="text-xl font-bold">{trade.asset}</span>
-            </div>
-
-            <div className="space-y-1.5 text-sm">
-              <p><strong>Price:</strong> {trade.price}</p>
-              <p><strong>Limits:</strong> {trade.minAmount} – {trade.maxAmount} {trade.asset}</p>
-              <p><strong>Merchant:</strong> {trade.merchant.name}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
 }

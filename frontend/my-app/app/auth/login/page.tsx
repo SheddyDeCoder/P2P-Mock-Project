@@ -1,8 +1,9 @@
+// app/login/page.tsx   (or wherever this lives — confirm path)
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/lib/api";
+import api from "@/lib/api";          // ← your axios instance (must be fixed!)
 import axios from "axios";
 
 export default function LoginPage() {
@@ -10,27 +11,44 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setError(null);
 
     try {
       const response = await api.post("/auth/login", { email, password });
-      const token = response.data?.token;
-      if (token) {
-        localStorage.setItem("token", token);
-        router.push("/dashboard");
-      } else {
-        setError("No token received from server");
+
+      const { token, user } = response.data ?? {};   // adjust based on your backend response shape
+
+      if (!token) {
+        throw new Error("No token received from server");
       }
+
+      // Store token (consider httpOnly cookie later for better security)
+      localStorage.setItem("token", token);
+
+      // Optional: store minimal user info if returned
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      // Redirect to dashboard (or home)
+      router.push("/dashboard");
+      router.refresh();   // ← helps refresh server components if needed
     } catch (err) {
+      console.error("Login error:", err);   // ← important for debugging!
+
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || "Login failed. Check credentials.");
+        const serverMessage = err.response?.data?.message 
+                           || err.response?.data?.error 
+                           || "Invalid email or password";
+
+        setError(serverMessage);
       } else {
-        setError("Login failed. Check credentials.");
+        setError("Something went wrong. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -42,30 +60,32 @@ export default function LoginPage() {
       <h1 style={{ textAlign: "center", marginBottom: "32px" }}>Login</h1>
 
       {error && (
-        <div style={{ color: "red", marginBottom: "16px", textAlign: "center" }}>
+        <div style={{ color: "red", marginBottom: "16px", textAlign: "center", padding: "10px", background: "#ffebee", borderRadius: "6px" }}>
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: "16px" }}>
-          <label style={{ display: "block", marginBottom: "6px" }}>Email</label>
+          <label style={{ display: "block", marginBottom: "6px", fontWeight: 500 }}>Email</label>
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value.trim())}
             required
+            autoComplete="email"
             style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
           />
         </div>
 
         <div style={{ marginBottom: "24px" }}>
-          <label style={{ display: "block", marginBottom: "6px" }}>Password</label>
+          <label style={{ display: "block", marginBottom: "6px", fontWeight: 500 }}>Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
             style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
           />
         </div>
@@ -90,8 +110,8 @@ export default function LoginPage() {
 
       <p style={{ textAlign: "center", marginTop: "24px" }}>
         Don't have an account?{" "}
-        <a href="/auth/register/register" style={{ color: "#0066cc" }}>
-          Register
+        <a href="/register" style={{ color: "#0066cc", textDecoration: "underline" }}>
+          Register here
         </a>
       </p>
     </div>
