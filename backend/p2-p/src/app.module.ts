@@ -10,7 +10,8 @@ import { SwapModule } from './swap/swap.module';
 import { WalletModule } from './wallet/wallet.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, OfferModule, TradesModule, EscrowModule, FundingModule, SwapModule, WalletModule],
+  imports: [AuthModule, UsersModule, OfferModule, TradesModule, EscrowModule, FundingModule, SwapModule, 
+     PrismaModule, WalletModule],
   controllers: [],
   providers: [],
 })
