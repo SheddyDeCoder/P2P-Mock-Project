@@ -15,14 +15,13 @@ model User {
   walletAddress  String?   @unique
   username       String?
   createdAt      DateTime  @default(now())
-  role           Role      @default(USER)
-
+  role           Role      @default(user)
   fundings       Funding[]
   offers         Offer[]
   swaps          Swap[]
-  wallets        Wallet[]
   buyTrades      Trade[]   @relation("BuyerTrades")
   sellTrades     Trade[]   @relation("SellerTrades")
+  wallets        Wallet[]
 }
 
 model Wallet {
@@ -33,8 +32,7 @@ model Wallet {
   balance       Decimal  @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, asset])
   @@unique([walletAddress, asset])
@@ -46,11 +44,10 @@ model Funding {
   type      FundingType
   asset     String
   amount    Decimal
-  status    FundingStatus @default(PENDING)
+  status    FundingStatus @default(pending)
   reference String        @unique
   createdAt DateTime      @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
 }
 
 model Swap {
@@ -61,11 +58,10 @@ model Swap {
   fromAmount Decimal
   toAmount   Decimal
   rate       Decimal
-  status     SwapStatus @default(PENDING)
+  status     SwapStatus @default(pending)
   reference  String     @unique
   createdAt  DateTime   @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
 }
 
 model Offer {
@@ -74,11 +70,10 @@ model Offer {
   type      OfferType
   asset     String
   price     Decimal
-  status    OfferStatus @default(ACTIVE)
+  status    OfferStatus @default(active)
   createdAt DateTime    @default(now())
-
-  user   User   @relation(fields: [userId], references: [id])
-  trades Trade[]
+  user      User        @relation(fields: [userId], references: [id])
+  trades    Trade[]
 }
 
 model Trade {
@@ -88,68 +83,65 @@ model Trade {
   offerId        String
   amount         Decimal
   idempotencyKey String      @unique
-  status         TradeStatus @default(PENDING)
+  status         TradeStatus @default(pending)
   createdAt      DateTime    @default(now())
-
-  escrow Escrow?
-
-  buyer  User  @relation("BuyerTrades", fields: [buyerId], references: [id])
-  seller User  @relation("SellerTrades", fields: [sellerId], references: [id])
-  offer  Offer @relation(fields: [offerId], references: [id])
+  escrow         Escrow?
+  buyer          User        @relation("BuyerTrades", fields: [buyerId], references: [id])
+  offer          Offer       @relation(fields: [offerId], references: [id])
+  seller         User        @relation("SellerTrades", fields: [sellerId], references: [id])
 }
 
 model Escrow {
   id              String       @id @default(uuid())
   tradeId         String       @unique
   contractAddress String?
-  status          EscrowStatus @default(LOCKED)
+  status          EscrowStatus @default(locked)
   createdAt       DateTime     @default(now())
-
-  trade Trade @relation(fields: [tradeId], references: [id])
+  trade           Trade        @relation(fields: [tradeId], references: [id])
 }
 
 enum TradeStatus {
-  PENDING
-  FUNDED
-  COMPLETED
-  CANCELLED
+  pending
+  funded
+  completed
+  cancelled
 }
 
 enum OfferType {
-  BUY
-  SELL
+  buy
+  sell
 }
 
 enum OfferStatus {
-  ACTIVE
-  CLOSED
+  active
+  closed
 }
 
 enum EscrowStatus {
-  LOCKED
-  RELEASED
-  DISPUTED
+  locked
+  released
+  disputed
 }
 
 enum FundingType {
-  DEPOSIT
-  WITHDRAWAL
+  deposit
+  withdrawal
 }
 
 enum FundingStatus {
-  PENDING
-  COMPLETED
-  FAILED
+  pending
+  completed
+  failed
 }
 
 enum SwapStatus {
-  PENDING
-  COMPLETED
-  FAILED
+  pending
+  completed
+  failed
 }
 
 enum Role {
-  USER
-  ADMIN
-  MODERATOR
+  user
+  admin
+  moderator
 }
