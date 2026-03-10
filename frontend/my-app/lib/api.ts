@@ -8,12 +8,12 @@ import axios from 'axios';
  * Every API call goes through this instance.
  *
  * baseURL → your NestJS backend running on port 5005
- * All routes in your backend are prefixed with /api
- * so the full URL becomes: http://localhost:5005/api/funding etc.
+ * Your backend routes are under /auth, /funding etc.
+ * so the full URL becomes: http://localhost:5005/auth/register etc.
  * ============================================================
  */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005', // Removed /api
   headers: {
     'Content-Type': 'application/json',
   },
