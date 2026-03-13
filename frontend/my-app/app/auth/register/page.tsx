@@ -1,4 +1,4 @@
-// app/register/page.tsx
+// app/auth/register/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -288,7 +288,7 @@ export default function RegisterPage() {
           style={{
             width: '100%',
             padding: '12px',
-            background: loading ? '#aaa' : '#28a745',
+            background: loading ? '#aaa' : 'var(--primary)', // ← changed to your brand gold
             color: 'white',
             border: 'none',
             borderRadius: '6px',
@@ -304,7 +304,7 @@ export default function RegisterPage() {
         Already have an account?{' '}
         <a
           href="/auth/login"
-          style={{ color: '#0066cc', textDecoration: 'underline' }}
+          style={{ color: 'var(--primary)', textDecoration: 'underline' }} // ← changed to your brand gold
         >
           Login here
         </a>

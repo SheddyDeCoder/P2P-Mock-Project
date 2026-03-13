@@ -1,4 +1,4 @@
-// app/login/page.tsx
+// app/auth/login/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -156,7 +156,7 @@ export default function LoginPage() {
           style={{
             width: '100%',
             padding: '12px',
-            background: loading ? '#aaa' : '#0066cc',
+            background: loading ? '#aaa' : 'var(--primary)', // ← changed to your brand gold
             color: 'white',
             border: 'none',
             borderRadius: '6px',
@@ -172,7 +172,7 @@ export default function LoginPage() {
         Don't have an account?{' '}
         <a
           href="/auth/register"
-          style={{ color: '#0066cc', textDecoration: 'underline' }}
+          style={{ color: 'var(--primary)', textDecoration: 'underline' }} // ← changed to your brand gold
         >
           Register here
         </a>
