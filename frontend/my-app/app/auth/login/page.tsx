@@ -1,11 +1,10 @@
-// app/auth/login/page.tsx
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import axios from 'axios';
-import { LoginPayload } from '@/lib/services'; // Adjust import path as needed
+import { LoginPayload } from '@/lib/services';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,8 +12,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Password visibility state
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +20,6 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Using the LoginPayload type
       const payload: LoginPayload = {
         email: email.trim().toLowerCase(),
         password,
@@ -31,19 +27,18 @@ export default function LoginPage() {
 
       const response = await api.post('/auth/login', payload);
 
-      const { token, user } = response.data ?? {}; // adjust based on your backend response shape
+      // Backend returns: { message, token, role }
+      const { token, role, message } = response.data ?? {};
 
+      // Handle case where backend returns error message instead of token
       if (!token) {
-        throw new Error('No token received from server');
+        setError(message || 'Invalid email or password');
+        return;
       }
 
-      // Store token
+      // Store token and role
       localStorage.setItem('token', token);
-
-      // Optional: store minimal user info if returned
-      if (user) {
-        localStorage.setItem('user', JSON.stringify(user));
-      }
+      localStorage.setItem('role', role ?? 'user');
 
       // Redirect to dashboard
       router.push('/dashboard');
@@ -56,7 +51,6 @@ export default function LoginPage() {
           err.response?.data?.message ||
           err.response?.data?.error ||
           'Invalid email or password';
-
         setError(serverMessage);
       } else {
         setError('Something went wrong. Please try again.');
@@ -87,9 +81,7 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '16px' }}>
-          <label
-            style={{ display: 'block', marginBottom: '6px', fontWeight: 500 }}
-          >
+          <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500 }}>
             Email
           </label>
           <input
@@ -109,9 +101,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginBottom: '24px' }}>
-          <label
-            style={{ display: 'block', marginBottom: '6px', fontWeight: 500 }}
-          >
+          <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500 }}>
             Password
           </label>
           <div style={{ position: 'relative' }}>
@@ -156,7 +146,7 @@ export default function LoginPage() {
           style={{
             width: '100%',
             padding: '12px',
-            background: loading ? '#aaa' : 'var(--primary)', // ← changed to your brand gold
+            background: loading ? '#aaa' : 'var(--primary)',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
@@ -172,7 +162,7 @@ export default function LoginPage() {
         Don't have an account?{' '}
         <a
           href="/auth/register"
-          style={{ color: 'var(--primary)', textDecoration: 'underline' }} // ← changed to your brand gold
+          style={{ color: 'var(--primary)', textDecoration: 'underline' }}
         >
           Register here
         </a>
