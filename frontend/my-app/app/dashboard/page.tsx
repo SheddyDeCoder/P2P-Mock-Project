@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, easeOut } from 'framer-motion'; // ← corrected import (added easeOut)
 import {
   getMyProfile,
   getMyWallets,
@@ -69,6 +70,28 @@ export default function DashboardPage() {
       cancelled: { bg: '#e2e3e5', text: '#383d41' },
     };
     return map[status?.toLowerCase()] ?? { bg: '#f8f9fa', text: '#666' };
+  };
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: easeOut }, // ← corrected: use easeOut function
+    },
+  };
+
+  const cardHover = {
+    hover: { scale: 1.03, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' },
   };
 
   if (loading) {
