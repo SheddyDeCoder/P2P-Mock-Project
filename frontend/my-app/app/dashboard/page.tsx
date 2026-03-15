@@ -60,39 +60,32 @@ export default function DashboardPage() {
   const recentFunding = funding.slice(0, 5);
   const recentSwaps = swaps.slice(0, 3);
 
-  const statusColor = (status: string) => {
-    const map: Record<string, { bg: string; text: string }> = {
-      completed: { bg: '#d4edda', text: '#155724' },
-      pending: { bg: '#fff3cd', text: '#856404' },
-      failed: { bg: '#f8d7da', text: '#721c24' },
-      funded: { bg: '#cce5ff', text: '#004085' },
-      cancelled: { bg: '#e2e3e5', text: '#383d41' },
-    };
-    return map[status?.toLowerCase()] ?? { bg: '#f8f9fa', text: '#666' };
+  const statusStyle = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed': return 'bg-primary/10 text-primary';
+      case 'pending': return 'bg-accent text-accent-foreground';
+      case 'failed': return 'bg-destructive/10 text-destructive';
+      case 'funded': return 'bg-accent text-accent-foreground';
+      case 'cancelled': return 'bg-secondary text-secondary-foreground';
+      default: return 'bg-secondary text-secondary-foreground';
+    }
   };
 
   if (loading) {
     return (
-      <div style={{ padding: '80px', textAlign: 'center', color: '#666' }}>
-        Loading dashboard...
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">Loading dashboard...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <p style={{ color: 'red', marginBottom: '16px' }}>{error}</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <p className="text-destructive text-sm">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          style={{
-            padding: '10px 24px',
-            background: '#0066cc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-          }}
+          className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
         >
           Try Again
         </button>
@@ -101,381 +94,193 @@ export default function DashboardPage() {
   }
 
   return (
-    <div style={{ padding: '32px', maxWidth: '960px', margin: '0 auto' }}>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '32px',
-        }}
-      >
-        <div>
-          <h1 style={{ margin: 0, fontSize: '28px' }}>
+    <div className="min-h-screen bg-background text-foreground px-4 py-10">
+      <div className="max-w-4xl mx-auto">
+
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-foreground">
             Welcome back, {profile?.username || profile?.email?.split('@')[0] || 'User'} 👋
           </h1>
-          <p style={{ margin: '4px 0 0', color: '#666', fontSize: '14px' }}>
+          <p className="text-muted-foreground text-sm mt-1">
             {profile?.email} · Role: {profile?.role ?? localStorage.getItem('role') ?? 'user'}
           </p>
         </div>
-        <button
-          onClick={() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            router.push('/auth/login');
-          }}
-          style={{
-            padding: '8px 16px',
-            background: 'transparent',
-            border: '1px solid #ccc',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            color: '#666',
-          }}
-        >
-          Logout
-        </button>
-      </div>
 
-      {/* Summary Cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '16px',
-          marginBottom: '32px',
-        }}
-      >
-        {[
-          {
-            label: 'Main Balance',
-            value: `$${parseFloat(profile?.balance ?? 0).toFixed(2)}`,
-            bg: '#f0f8ff',
-            color: '#0066cc',
-          },
-          {
-            label: 'Wallet Balance',
-            value: `$${totalWalletBalance.toFixed(2)}`,
-            bg: '#f3e5f5',
-            color: '#7b1fa2',
-          },
-          {
-            label: 'Wallets',
-            value: wallets.length,
-            bg: '#e8f5e9',
-            color: '#2e7d32',
-          },
-          {
-            label: 'Transactions',
-            value: funding.length,
-            bg: '#fff3e0',
-            color: '#e65100',
-          },
-          {
-            label: 'Swaps',
-            value: swaps.length,
-            bg: '#fce4ec',
-            color: '#c62828',
-          },
-        ].map((card) => (
-          <div
-            key={card.label}
-            style={{
-              padding: '20px',
-              background: card.bg,
-              borderRadius: '10px',
-              textAlign: 'center',
-            }}
-          >
-            <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#666' }}>
-              {card.label}
-            </p>
-            <p
-              style={{
-                margin: 0,
-                fontSize: '26px',
-                fontWeight: 'bold',
-                color: card.color,
-              }}
-            >
-              {card.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div style={{ marginBottom: '32px' }}>
-        <h2 style={{ marginBottom: '12px', fontSize: '18px' }}>Quick Actions</h2>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
           {[
-            { label: '💰 Fund Account', path: '/funding' },
-            { label: '🔄 Swap Assets', path: '/swap' },
-            { label: '📋 Browse Offers', path: '/offers' },
-            { label: '🤝 My Trades', path: '/trades' },
-            { label: '👛 My Wallets', path: '/wallet' },
-            { label: '👤 Profile', path: '/profile' },
-          ].map((action) => (
-            <button
-              key={action.path}
-              onClick={() => router.push(action.path)}
-              style={{
-                padding: '10px 20px',
-                background: 'white',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-              }}
+            { label: 'Main Balance', value: `$${parseFloat(profile?.balance ?? 0).toFixed(2)}` },
+            { label: 'Wallet Balance', value: `$${totalWalletBalance.toFixed(2)}` },
+            { label: 'Wallets', value: wallets.length },
+            { label: 'Transactions', value: funding.length },
+            { label: 'Swaps', value: swaps.length },
+          ].map((card) => (
+            <div
+              key={card.label}
+              className="bg-card border border-border rounded-xl p-4 text-center"
             >
-              {action.label}
-            </button>
+              <p className="text-muted-foreground text-xs mb-1">{card.label}</p>
+              <p className="text-foreground font-bold text-xl">{card.value}</p>
+            </div>
           ))}
         </div>
-      </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '24px',
-        }}
-      >
-        {/* Recent Funding */}
-        <div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '12px',
-            }}
-          >
-            <h2 style={{ margin: 0, fontSize: '18px' }}>Recent Transactions</h2>
-            <button
-              onClick={() => router.push('/funding')}
-              style={{
-                fontSize: '13px',
-                color: '#0066cc',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              View all →
-            </button>
-          </div>
-          {recentFunding.length === 0 ? (
-            <div
-              style={{
-                padding: '24px',
-                textAlign: 'center',
-                background: '#f8f9fa',
-                borderRadius: '8px',
-                color: '#888',
-                fontSize: '14px',
-              }}
-            >
-              No transactions yet.{' '}
-              <span
-                style={{ color: '#0066cc', cursor: 'pointer' }}
-                onClick={() => router.push('/funding')}
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-base font-semibold text-foreground mb-3">Quick Actions</h2>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { label: '💰 Fund Account', path: '/funding' },
+              { label: '🔄 Swap Assets', path: '/swap' },
+              { label: '📋 Browse Offers', path: '/offers' },
+              { label: '🤝 My Trades', path: '/trades' },
+              { label: '👛 My Wallets', path: '/wallet' },
+              { label: '👤 Profile', path: '/profile' },
+            ].map((action) => (
+              <button
+                key={action.path}
+                onClick={() => router.push(action.path)}
+                className="px-4 py-2 bg-secondary text-secondary-foreground border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors cursor-pointer"
               >
-                Make a deposit
-              </span>
+                {action.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          {/* Recent Transactions */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-foreground">Recent Transactions</h2>
+              <button
+                onClick={() => router.push('/funding')}
+                className="text-xs text-primary hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none"
+              >
+                View all →
+              </button>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {recentFunding.map((f: any) => {
-                const sc = statusColor(f.status);
-                return (
+
+            {recentFunding.length === 0 ? (
+              <div className="bg-card border border-border rounded-xl p-6 text-center">
+                <p className="text-muted-foreground text-sm mb-2">No transactions yet.</p>
+                <span
+                  className="text-primary text-xs cursor-pointer underline"
+                  onClick={() => router.push('/funding')}
+                >
+                  Make a deposit
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {recentFunding.map((f: any) => (
                   <div
                     key={f.id}
-                    style={{
-                      padding: '12px 16px',
-                      background: 'white',
-                      border: '1px solid #eee',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
+                    className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                   >
                     <div>
-                      <p style={{ margin: 0, fontWeight: 500, fontSize: '14px' }}>
+                      <p className="text-foreground font-medium text-sm">
                         {f.type === 'deposit' ? '⬇️ Deposit' : '⬆️ Withdrawal'} · {f.asset}
                       </p>
-                      <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#888' }}>
+                      <p className="text-muted-foreground text-xs mt-0.5">
                         {new Date(f.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ margin: 0, fontWeight: 'bold', fontSize: '15px' }}>
+                    <div className="text-right">
+                      <p className="text-foreground font-bold text-sm">
                         ${parseFloat(f.amount).toFixed(2)}
                       </p>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          background: sc.bg,
-                          color: sc.text,
-                        }}
-                      >
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusStyle(f.status)}`}>
                         {f.status}
                       </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Wallet Balances */}
-        <div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '12px',
-            }}
-          >
-            <h2 style={{ margin: 0, fontSize: '18px' }}>Asset Wallets</h2>
-            <button
-              onClick={() => router.push('/wallet')}
-              style={{
-                fontSize: '13px',
-                color: '#0066cc',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              View all →
-            </button>
+                ))}
+              </div>
+            )}
           </div>
-          {wallets.length === 0 ? (
-            <div
-              style={{
-                padding: '24px',
-                textAlign: 'center',
-                background: '#f8f9fa',
-                borderRadius: '8px',
-                color: '#888',
-                fontSize: '14px',
-              }}
-            >
-              No wallets yet.{' '}
-              <span
-                style={{ color: '#0066cc', cursor: 'pointer' }}
+
+          {/* Wallets + Swaps */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-foreground">Asset Wallets</h2>
+              <button
                 onClick={() => router.push('/wallet')}
+                className="text-xs text-primary hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none"
               >
-                Fund a wallet
-              </span>
+                View all →
+              </button>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {wallets.map((w: any) => (
-                <div
-                  key={w.id}
-                  style={{
-                    padding: '12px 16px',
-                    background: 'white',
-                    border: '1px solid #eee',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+
+            {wallets.length === 0 ? (
+              <div className="bg-card border border-border rounded-xl p-6 text-center mb-4">
+                <p className="text-muted-foreground text-sm mb-2">No wallets yet.</p>
+                <span
+                  className="text-primary text-xs cursor-pointer underline"
+                  onClick={() => router.push('/wallet')}
                 >
-                  <div>
-                    <p style={{ margin: 0, fontWeight: 500, fontSize: '14px' }}>
-                      {w.asset}
-                    </p>
-                    <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#aaa' }}>
-                      {w.walletAddress?.slice(0, 16)}...
+                  Fund a wallet
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 mb-6">
+                {wallets.map((w: any) => (
+                  <div
+                    key={w.id}
+                    className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="text-foreground font-medium text-sm">{w.asset}</p>
+                      <p className="text-muted-foreground text-xs mt-0.5">
+                        {w.walletAddress?.slice(0, 16)}...
+                      </p>
+                    </div>
+                    <p className="text-foreground font-bold text-sm">
+                      {parseFloat(w.balance).toFixed(4)}
                     </p>
                   </div>
-                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '15px' }}>
-                    {parseFloat(w.balance).toFixed(4)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Recent Swaps */}
-          {recentSwaps.length > 0 && (
-            <>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  margin: '20px 0 12px',
-                }}
-              >
-                <h2 style={{ margin: 0, fontSize: '18px' }}>Recent Swaps</h2>
-                <button
-                  onClick={() => router.push('/swap')}
-                  style={{
-                    fontSize: '13px',
-                    color: '#0066cc',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  View all →
-                </button>
+                ))}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {recentSwaps.map((s: any) => {
-                  const sc = statusColor(s.status);
-                  return (
+            )}
+
+            {/* Recent Swaps */}
+            {recentSwaps.length > 0 && (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-semibold text-foreground">Recent Swaps</h2>
+                  <button
+                    onClick={() => router.push('/swap')}
+                    className="text-xs text-primary hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none"
+                  >
+                    View all →
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {recentSwaps.map((s: any) => (
                     <div
                       key={s.id}
-                      style={{
-                        padding: '12px 16px',
-                        background: 'white',
-                        border: '1px solid #eee',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
+                      className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                     >
-                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>
+                      <p className="text-foreground font-medium text-sm">
                         {s.fromAsset} → {s.toAsset}
                       </p>
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{ margin: 0, fontSize: '14px' }}>
+                      <div className="text-right">
+                        <p className="text-foreground text-sm">
                           {parseFloat(s.fromAmount).toFixed(4)}
                         </p>
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            background: sc.bg,
-                            color: sc.text,
-                          }}
-                        >
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusStyle(s.status)}`}>
                           {s.status}
                         </span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,27 +1,32 @@
-import "./globals.css"
-import { ReactNode } from "react"
-import Navbar from "@/components/layout/Navbar"
-import Footer from "@/components/layout/Footer"
+import type { Metadata } from 'next';
+import './globals.css';
+import Sidebar from '@/components/layout/Sidebar';
 
-export const metadata = {
-  title: "P2P Exchange",
-  description: "Secure peer-to-peer trading platform",
-}
+export const metadata: Metadata = {
+  title: 'P2P Exchange',
+  description: 'P2P Crypto Trading Platform',
+};
+
+// Pages that should NOT show the sidebar
+const PUBLIC_PATHS = ['/auth/login', '/auth/register', '/'];
 
 export default function RootLayout({
   children,
 }: {
-  children: ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground">
-        <Navbar />
-        <main className="container mx-auto px-6 py-10">
-          {children}
-        </main>
-        <Footer />
+    <html lang="en">
+      <body>
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
-  )
+  );
+}
+
+// Client wrapper to conditionally show sidebar
+import ClientLayout from '@/components/layout/ClientLayout';
+
+function LayoutWrapper({ children }: { children: React.ReactNode }) {
+  return <ClientLayout>{children}</ClientLayout>;
 }
