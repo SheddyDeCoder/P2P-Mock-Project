@@ -33,6 +33,9 @@ export default function HomePage() {
         >
           Secure escrow protection. Instant peer matching.
           Trade crypto and digital assets safely with next-generation Web3 security.
+          <span className="block mt-2 text-primary font-medium">
+            No KYC. No account required to trade.
+          </span>
         </motion.p>
 
         <motion.div
@@ -41,7 +44,8 @@ export default function HomePage() {
           transition={{ delay: 0.4, duration: 0.8 }}
           className="flex flex-col sm:flex-row gap-4 mt-4"
         >
-          <Link href="/trades">
+          {/* ← Changed from /trades to /offers */}
+          <Link href="/offers">
             <Button size="lg" className="shadow-lg shadow-primary/30">
               Start Trading
             </Button>
@@ -53,19 +57,30 @@ export default function HomePage() {
             </Button>
           </Link>
         </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.8 }}
+          className="text-muted-foreground text-xs"
+        >
+          Want to create offers, swap, or manage your wallet?{" "}
+          <Link href="/auth/login" className="text-primary underline">
+            Login here
+          </Link>
+        </motion.p>
       </section>
 
       {/* FEATURES SECTION */}
       <section className="grid md:grid-cols-3 gap-8 px-6 pb-32 max-w-6xl mx-auto">
-
         {[
           {
             title: "Decentralized Escrow",
             desc: "Funds are locked securely until both parties confirm the trade."
           },
           {
-            title: "Instant Matching",
-            desc: "Our engine pairs buyers and sellers seamlessly."
+            title: "No KYC Required",
+            desc: "Trade freely without identity verification. Just browse offers and start trading instantly."
           },
           {
             title: "Web3 Security",
