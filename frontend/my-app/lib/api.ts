@@ -1,37 +1,14 @@
 import axios from 'axios';
 
-/**
- * ============================================================
- * STEP 1: AXIOS INSTANCE
- * ============================================================
- * We create ONE axios instance for the whole app.
- * Every API call goes through this instance.
- *
- * baseURL → your NestJS backend running on port 5005
- * Your backend routes are under /auth, /funding etc.
- * so the full URL becomes: http://localhost:5005/auth/register etc.
- * ============================================================
- */
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://p2p-mock-project.onrender.com', // Removed /api
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://p2p-mock-project.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-/**
- * ============================================================
- * STEP 2: REQUEST INTERCEPTOR
- * ============================================================
- * This runs BEFORE every request automatically.
- * It reads the JWT token from localStorage and adds it to
- * the Authorization header so your JwtAuthGuard works.
- *
- * Without this, every protected route returns 401 Unauthorized.
- * ============================================================
- */
+// REQUEST INTERCEPTOR — attach JWT token to every request
 api.interceptors.request.use((config) => {
-  // only runs in browser (not during SSR)
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
     if (token) {
@@ -41,22 +18,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/**
- * ============================================================
- * STEP 3: RESPONSE INTERCEPTOR
- * ============================================================
- * This runs AFTER every response.
- * If the server returns 401 (token expired or invalid),
- * we clear the token and redirect to login automatically.
- * ============================================================
- */
+// RESPONSE INTERCEPTOR — handle 401 (token expired/invalid)
 api.interceptors.response.use(
-  (response) => response, // pass through successful responses
+  (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('token');
+      localStorage.removeItem('role');
       localStorage.removeItem('user');
-      window.location.href = '/login'; // redirect to login page
+      window.location.href = '/auth/login'; // ← fixed path
     }
     return Promise.reject(error);
   },

@@ -3,10 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // Optional: define connection pool size (useful for dev)
-  // url = "postgresql://user:password@localhost:5432/dbname?connection_limit=5"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
