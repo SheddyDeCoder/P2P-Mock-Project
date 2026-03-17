@@ -33,14 +33,17 @@ export class OfferService {
   }
 
   async getAllOffers() {
-    return this.prisma.offer.findMany({
-      select: {
-        id: true,
-        type: true,
-        asset: true,
-        price: true,
-        createdAt: true,
-      },
-    });
-  }
+  return this.prisma.offer.findMany({
+    where: { status: 'active' },
+    select: {
+      id: true,
+      userId: true,
+      type: true,
+      asset: true,
+      price: true,
+      createdAt: true,
+    },
+  });
+}
+
 }
