@@ -110,7 +110,7 @@ export default function HomePage() {
             <p className="text-muted-foreground">Trades Completed</p>
           </div>
           <div>
-            <h2 className="text-4xl font-bold text-primary">5K+</h2>
+            <h2 className="text-4xl font-bold text-primary">6K+</h2>
             <p className="text-muted-foreground">Active Users</p>
           </div>
           <div>
