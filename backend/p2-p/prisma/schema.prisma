@@ -10,21 +10,21 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(uuid())
-  email          String    @unique
+  id             String   @id @default(uuid())
+  email          String   @unique
   hashedPassword String
-  balance        Decimal   @default(0)
-  walletAddress  String?   @unique
+  balance        Decimal  @default(0)
+  walletAddress  String?  @unique
   username       String?
-  role           Role      @default(user)
-  createdAt      DateTime  @default(now())
+  role           Role     @default(user)
+  createdAt      DateTime @default(now())
 
-  fundings       Funding[]
-  offers         Offer[]
-  swaps          Swap[]
-  buyTrades      Trade[]   @relation("BuyerTrades")
-  sellTrades     Trade[]   @relation("SellerTrades")
-  wallets        Wallet[]
+  fundings   Funding[]
+  offers     Offer[]
+  swaps      Swap[]
+  buyTrades  Trade[]   @relation("BuyerTrades")
+  sellTrades Trade[]   @relation("SellerTrades")
+  wallets    Wallet[]
 }
 
 model Wallet {
@@ -36,7 +36,7 @@ model Wallet {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user          User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, asset])
   @@unique([walletAddress, asset])
@@ -52,7 +52,8 @@ model Funding {
   reference String        @unique
   createdAt DateTime      @default(now())
 
-  user      User          @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
   @@index([userId, status])
 }
 
@@ -68,21 +69,22 @@ model Swap {
   reference  String     @unique
   createdAt  DateTime   @default(now())
 
-  user       User       @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
   @@index([userId, status])
 }
 
 model Offer {
   id        String      @id @default(uuid())
-  userId    String
+  userId    String?
   type      OfferType
   asset     String
   price     Decimal
   status    OfferStatus @default(active)
   createdAt DateTime    @default(now())
 
-  user      User        @relation(fields: [userId], references: [id])
-  trades    Trade[]
+  user   User?   @relation(fields: [userId], references: [id])
+  trades Trade[]
 
   @@index([userId, status])
   @@index([asset, status])
@@ -98,10 +100,10 @@ model Trade {
   status         TradeStatus @default(pending)
   createdAt      DateTime    @default(now())
 
-  buyer          User        @relation("BuyerTrades", fields: [buyerId], references: [id])
-  seller         User        @relation("SellerTrades", fields: [sellerId], references: [id])
-  offer          Offer       @relation(fields: [offerId], references: [id])
-  escrow         Escrow?
+  buyer  User    @relation("BuyerTrades", fields: [buyerId], references: [id])
+  seller User    @relation("SellerTrades", fields: [sellerId], references: [id])
+  offer  Offer   @relation(fields: [offerId], references: [id])
+  escrow Escrow?
 
   @@index([buyerId, status])
   @@index([sellerId, status])
@@ -114,7 +116,7 @@ model Escrow {
   status          EscrowStatus @default(locked)
   createdAt       DateTime     @default(now())
 
-  trade           Trade        @relation(fields: [tradeId], references: [id])
+  trade Trade @relation(fields: [tradeId], references: [id])
 }
 
 enum TradeStatus {
