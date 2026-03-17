@@ -31,7 +31,7 @@ export class OfferController {
   }
 
   @Get()
-  @Roles('admin')
+  @Roles('admin', 'user', 'moderator')
   getAllOffers() {
     return this.offerService.getAllOffers();
   }
