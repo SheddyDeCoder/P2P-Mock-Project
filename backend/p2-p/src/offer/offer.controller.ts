@@ -21,7 +21,6 @@ export class OfferController {
   constructor(private readonly offerService: OfferService) {}
 
   @Post()
-  @Roles('admin', 'user')
   @UseGuards(JwtAuthGuard, RolesGuard)
   create(
     @CurrentUser() user: { id: string },
@@ -31,7 +30,6 @@ export class OfferController {
   }
 
   @Get()
-  @Roles('admin', 'user', 'moderator')
   getAllOffers() {
     return this.offerService.getAllOffers();
   }
