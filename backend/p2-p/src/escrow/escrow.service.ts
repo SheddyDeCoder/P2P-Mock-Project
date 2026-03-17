@@ -45,9 +45,11 @@ export class EscrowService {
         },
       },
     });
+
     if (!escrow) {
       throw new NotFoundException(`Escrow for Trade ID ${tradeId} not found`);
     }
+
     return escrow;
   }
 
@@ -56,25 +58,20 @@ export class EscrowService {
 
     const escrow = await this.prisma.escrow.findUnique({
       where: { id },
-      include: {
-        trade: true,
-      },
+      include: { trade: true },
     });
 
     if (!escrow) {
       throw new NotFoundException(`Escrow with ID ${id} not found`);
     }
 
-    // Enforce valid status transitions
     const allowedTransitions: Record<EscrowStatus, EscrowStatus[]> = {
       locked: [EscrowStatus.released, EscrowStatus.disputed],
-      released: [], // terminal state
-      disputed: [], // terminal state
+      released: [],
+      disputed: [],
     };
 
-    const allowed = allowedTransitions[escrow.status];
-
-    if (!allowed.includes(status)) {
+    if (!allowedTransitions[escrow.status].includes(status)) {
       throw new BadRequestException(
         `Invalid status transition from ${escrow.status} to ${status}`,
       );
@@ -83,7 +80,7 @@ export class EscrowService {
     if (status === EscrowStatus.released) {
       const { buyerId, sellerId, amount } = escrow.trade;
 
-      const [updatedEscrow] = await this.prisma.$transaction([
+      const transactions = [
         // 1. Update escrow → released
         this.prisma.escrow.update({
           where: { id },
@@ -98,19 +95,29 @@ export class EscrowService {
           where: { id: escrow.tradeId },
           data: { status: TradeStatus.completed },
         }),
+      ];
 
-        // 3. Deduct from seller
-        this.prisma.user.update({
-          where: { id: sellerId },
-          data: { balance: { decrement: amount } },
-        }),
+      // 3. Deduct from seller (only if sellerId exists)
+      if (sellerId) {
+        transactions.push(
+          this.prisma.user.update({
+            where: { id: sellerId },
+            data: { balance: { decrement: amount } },
+          }) as any,
+        );
+      }
 
-        // 4. Add to buyer
-        this.prisma.user.update({
-          where: { id: buyerId },
-          data: { balance: { increment: amount } },
-        }),
-      ]);
+      // 4. Add to buyer (only if buyerId exists)
+      if (buyerId) {
+        transactions.push(
+          this.prisma.user.update({
+            where: { id: buyerId },
+            data: { balance: { increment: amount } },
+          }) as any,
+        );
+      }
+
+      const [updatedEscrow] = await this.prisma.$transaction(transactions);
 
       return {
         message: 'Escrow released — trade completed and balances updated',

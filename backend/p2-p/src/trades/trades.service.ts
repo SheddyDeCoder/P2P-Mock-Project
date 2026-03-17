@@ -12,14 +12,13 @@ import { v4 as uuidv4 } from 'uuid';
 export class TradesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(currentUserId: string, createTradeDto: CreateTradeDto) {
+  async create(currentUserId: string | null, createTradeDto: CreateTradeDto) {
     const { counterpartyId, amount } = createTradeDto;
 
-    if (currentUserId === counterpartyId) {
+    if (currentUserId && currentUserId === counterpartyId) {
       throw new BadRequestException('You cannot trade with yourself');
     }
 
-    // Verify counterparty exists
     const counterparty = await this.prisma.user.findUnique({
       where: { id: counterpartyId },
     });
@@ -32,20 +31,27 @@ export class TradesService {
 
     const offer = await this.prisma.offer.findFirst({
       where: {
-        userId: currentUserId, // must be the current user's offer
-        status: 'active', // must be active
+        ...(currentUserId ? { userId: currentUserId } : {}),
+        status: 'active',
       },
-      orderBy: { createdAt: 'desc' }, // most recent offer first
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!offer) {
       throw new NotFoundException(
-        'You have no active offer. Please create an offer first before initiating a trade',
+        'No active offer found. Please create an offer first before initiating a trade',
       );
     }
 
-    const buyerId = offer.type === 'buy' ? currentUserId : counterpartyId;
-    const sellerId = offer.type === 'sell' ? currentUserId : counterpartyId;
+    const buyerId: string | undefined =
+      offer.type === 'buy'
+        ? (currentUserId ?? counterpartyId)
+        : (counterpartyId ?? undefined);
+
+    const sellerId: string | undefined =
+      offer.type === 'sell'
+        ? (currentUserId ?? counterpartyId)
+        : (counterpartyId ?? undefined);
 
     const buyer = await this.prisma.user.findUnique({ where: { id: buyerId } });
 
@@ -77,9 +83,9 @@ export class TradesService {
     const results = await this.prisma.$transaction(async (tx) => {
       const trade = await tx.trade.create({
         data: {
-          buyerId,
-          sellerId,
-          offerId: offer.id, // auto-determined from current user's active offer
+          buyerId: buyerId ?? undefined,
+          sellerId: sellerId ?? undefined,
+          offerId: offer.id,
           amount,
           idempotencyKey,
           status: TradeStatus.pending,
@@ -120,12 +126,11 @@ export class TradesService {
       );
     }
 
-    // Enforce valid status transitions
     const allowedTransitions: Record<TradeStatus, TradeStatus[]> = {
       [TradeStatus.pending]: [TradeStatus.funded, TradeStatus.cancelled],
       [TradeStatus.funded]: [TradeStatus.completed, TradeStatus.cancelled],
-      [TradeStatus.completed]: [], // terminal
-      [TradeStatus.cancelled]: [], // terminal
+      [TradeStatus.completed]: [],
+      [TradeStatus.cancelled]: [],
     };
 
     if (!allowedTransitions[trade.status].includes(status)) {
@@ -141,15 +146,19 @@ export class TradesService {
       });
 
       if (status === TradeStatus.completed) {
-        await tx.user.update({
-          where: { id: trade.buyerId },
-          data: { balance: { decrement: trade.amount } },
-        });
+        if (trade.buyerId) {
+          await tx.user.update({
+            where: { id: trade.buyerId },
+            data: { balance: { decrement: trade.amount } },
+          });
+        }
 
-        await tx.user.update({
-          where: { id: trade.sellerId },
-          data: { balance: { increment: trade.amount } },
-        });
+        if (trade.sellerId) {
+          await tx.user.update({
+            where: { id: trade.sellerId },
+            data: { balance: { increment: trade.amount } },
+          });
+        }
 
         await tx.escrow.update({
           where: { tradeId: id },
@@ -188,13 +197,14 @@ export class TradesService {
     });
   }
 
-  async findAllMyTrade(userId: string) {
+  async findAllMyTrade(userId: string | null) {
+    if (!userId) {
+      return [];
+    }
+
     return this.prisma.trade.findMany({
       where: {
-        OR: [
-          { buyerId: userId }, // trades where I am the buyer
-          { sellerId: userId }, // trades where I am the seller
-        ],
+        OR: [{ buyerId: userId }, { sellerId: userId }],
       },
       include: {
         offer: true,

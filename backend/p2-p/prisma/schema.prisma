@@ -92,16 +92,16 @@ model Offer {
 
 model Trade {
   id             String      @id @default(uuid())
-  buyerId        String
-  sellerId       String
+  buyerId        String?
+  sellerId       String?
   offerId        String
   amount         Decimal
   idempotencyKey String      @unique
   status         TradeStatus @default(pending)
   createdAt      DateTime    @default(now())
 
-  buyer  User    @relation("BuyerTrades", fields: [buyerId], references: [id])
-  seller User    @relation("SellerTrades", fields: [sellerId], references: [id])
+  buyer  User?   @relation("BuyerTrades", fields: [buyerId], references: [id])
+  seller User?   @relation("SellerTrades", fields: [sellerId], references: [id])
   offer  Offer   @relation(fields: [offerId], references: [id])
   escrow Escrow?
 

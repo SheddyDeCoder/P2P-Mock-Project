@@ -5,19 +5,18 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   ValidationPipe,
   UseGuards,
 } from '@nestjs/common';
 import { TradesService } from './trades.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
-import { TradeStatus } from '@prisma/client/index-browser';
 import { ApiBearerAuth, ApiOperation, ApiProperty } from '@nestjs/swagger';
 import { UpdateTradeStatusDto } from './dto/update-trade.dto';
 import { JwtAuthGuard } from 'src/auth/guard/jwt.guard';
 import { CurrentUser } from 'src/users/decorator/current-user.decorator';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guard/roles.guard';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @Controller('trades')
 @ApiBearerAuth('JWT-auth')
@@ -26,17 +25,17 @@ export class TradesController {
   constructor(private readonly tradesService: TradesService) {}
 
   @Post()
-  @Roles('admin', 'user')
+  @Public()
   @ApiOperation({ summary: 'Create a trade against your active offer' })
   create(
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: { id: string } | undefined,
     @Body(ValidationPipe) createTradeDto: CreateTradeDto,
   ) {
-    return this.tradesService.create(user.id, createTradeDto);
+    return this.tradesService.create(user?.id ?? null, createTradeDto);
   }
 
   @Patch(':id/status')
-  @Roles('admin', 'user')
+  @Public()
   @ApiProperty({
     example: '1',
     description: 'The ID of the trade to update the status for',
@@ -57,10 +56,10 @@ export class TradesController {
     return this.tradesService.findAll();
   }
 
-  @Get()
-  @Roles('admin', 'user')
+  @Get('my-trades')
+  @Public()
   @ApiOperation({ summary: 'Get all my trades' })
-  findAllMyTrade(@CurrentUser() user: { id: string }) {
-    return this.tradesService.findAllMyTrade(user.id);
+  findAllMyTrade(@CurrentUser() user: { id: string } | undefined) {
+    return this.tradesService.findAllMyTrade(user?.id ?? null);
   }
 }
