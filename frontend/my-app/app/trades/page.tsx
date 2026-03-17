@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getMyTrades, createTrade, updateTradeStatus, TradePayload } from '@/lib/services';
 
-export default function TradesPage() {
+// ─── Inner component that uses useSearchParams ───────────────────────────────
+function TradesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Read URL params from "Start Trade" button on offers page
   const prefilledOfferId = searchParams.get('offerId') ?? '';
   const prefilledCounterpartyId = searchParams.get('counterpartyId') ?? '';
   const prefilledAsset = searchParams.get('asset') ?? '';
@@ -21,8 +21,6 @@ export default function TradesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Show form automatically if coming from "Start Trade"
   const [showForm, setShowForm] = useState(!!prefilledCounterpartyId);
 
   const [form, setForm] = useState<TradePayload>({
@@ -33,8 +31,6 @@ export default function TradesPage() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     setIsLoggedIn(!!token);
-
-    // Only fetch trades if logged in
     if (token) {
       fetchTrades();
     } else {
@@ -56,17 +52,13 @@ export default function TradesPage() {
 
   const handleCreateTrade = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Guest trying to trade — redirect to register
     if (!isLoggedIn) {
       router.push(`/auth/register?redirect=/trades?offerId=${prefilledOfferId}&counterpartyId=${prefilledCounterpartyId}&asset=${prefilledAsset}&price=${prefilledPrice}`);
       return;
     }
-
     setSubmitting(true);
     setError(null);
     setSuccess(null);
-
     try {
       await createTrade({
         counterpartyId: form.counterpartyId.trim(),
@@ -188,7 +180,6 @@ export default function TradesPage() {
               {prefilledAsset ? `Trade ${prefilledAsset}` : 'New Trade'}
             </h3>
 
-            {/* Offer info if coming from offers page */}
             {prefilledAsset && prefilledPrice && (
               <div className="bg-muted rounded-lg px-4 py-3 flex flex-col gap-1.5 text-xs">
                 <div className="flex justify-between">
@@ -206,11 +197,8 @@ export default function TradesPage() {
               </div>
             )}
 
-            {/* Counterparty ID — pre-filled and readonly if from offers page */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">
-                Counterparty ID
-              </label>
+              <label className="text-sm font-medium text-foreground">Counterparty ID</label>
               <input
                 type="text"
                 value={form.counterpartyId}
@@ -226,7 +214,6 @@ export default function TradesPage() {
               />
             </div>
 
-            {/* Amount */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">Amount</label>
               <input
@@ -241,7 +228,6 @@ export default function TradesPage() {
               />
             </div>
 
-            {/* Guest CTA */}
             {!isLoggedIn && (
               <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 text-xs text-primary">
                 💡 You need a free account to complete this trade. Clicking below will take you to register — your trade details will be saved.
@@ -253,16 +239,12 @@ export default function TradesPage() {
               disabled={submitting}
               className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {submitting
-                ? 'Creating...'
-                : !isLoggedIn
-                ? 'Create Free Account to Trade →'
-                : 'Create Trade'}
+              {submitting ? 'Creating...' : !isLoggedIn ? 'Create Free Account to Trade →' : 'Create Trade'}
             </button>
           </form>
         )}
 
-        {/* Logged in: Summary Cards + Trades List */}
+        {/* Logged in: Summary + Trades List */}
         {isLoggedIn && (
           <>
             <div className="grid grid-cols-3 gap-3 mb-6">
@@ -305,7 +287,6 @@ export default function TradesPage() {
                           {t.status}
                         </span>
                       </div>
-
                       <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
                         <div>
                           <p className="mb-0.5">Amount</p>
@@ -318,9 +299,7 @@ export default function TradesPage() {
                         <div>
                           <p className="mb-0.5">Date</p>
                           <p className="text-foreground font-medium">
-                            {new Date(t.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric', month: 'short', day: 'numeric',
-                            })}
+                            {new Date(t.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </p>
                         </div>
                         <div>
@@ -328,7 +307,6 @@ export default function TradesPage() {
                           <p className="text-foreground font-medium font-mono">#{t.offerId?.slice(0, 8) ?? '—'}</p>
                         </div>
                       </div>
-
                       <div className="flex items-center gap-2 flex-wrap">
                         <button
                           onClick={() => router.push(`/trades/${t.id}`)}
@@ -359,7 +337,7 @@ export default function TradesPage() {
           </>
         )}
 
-        {/* Guest: prompt to register/login */}
+        {/* Guest: no prefill — show browse prompt */}
         {!isLoggedIn && !prefilledCounterpartyId && (
           <div className="bg-card border border-border rounded-xl p-10 text-center">
             <p className="text-foreground font-semibold text-base mb-2">Want to trade?</p>
@@ -376,5 +354,18 @@ export default function TradesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// ─── Wrapper with Suspense boundary (required for useSearchParams) ────────────
+export default function TradesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">Loading...</p>
+      </div>
+    }>
+      <TradesContent />
+    </Suspense>
   );
 }
