@@ -15,16 +15,13 @@ export default function TradeDetailPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<string>('user');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      router.replace('/auth/login');
-      return;
-    }
-    const storedRole = localStorage.getItem('role') ?? 'user';
-    setRole(storedRole);
+    setIsLoggedIn(!!token);
+    setRole(localStorage.getItem('role') ?? 'user');
     fetchTradeDetail();
   }, [tradeId]);
 
@@ -32,19 +29,12 @@ export default function TradeDetailPage() {
     try {
       setLoading(true);
       setError(null);
-
-      // Fetch escrow by tradeId (this also gives us trade info via relation)
       const escrowData = await getEscrowByTrade(tradeId);
       setEscrow(escrowData);
-
-      // Trade info is nested inside escrow relation
-      if (escrowData?.trade) {
-        setTrade(escrowData.trade);
-      }
+      if (escrowData?.trade) setTrade(escrowData.trade);
     } catch (err: any) {
-      // Escrow might not exist yet for pending trades — that's okay
       if (err?.response?.status === 404) {
-        setError(null); // Not an error, just no escrow yet
+        setError(null);
       } else {
         setError('Failed to load trade details');
       }
@@ -54,10 +44,13 @@ export default function TradeDetailPage() {
   };
 
   const handleUpdateStatus = async (status: string) => {
+    if (!isLoggedIn) {
+      router.push('/auth/login');
+      return;
+    }
     setUpdatingStatus(true);
     setError(null);
     setSuccess(null);
-
     try {
       await updateTradeStatus(tradeId, status);
       setSuccess(`Trade status updated to ${status}`);
@@ -105,7 +98,7 @@ export default function TradeDetailPage() {
   }
 
   const tradeStatus = trade?.status ?? 'pending';
-  const actions = nextStatuses(tradeStatus);
+  const actions = isLoggedIn ? nextStatuses(tradeStatus) : [];
 
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-10">
@@ -121,7 +114,9 @@ export default function TradeDetailPage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Trade Detail</h1>
-            <p className="text-muted-foreground text-xs font-mono mt-0.5">#{tradeId?.slice(0, 16)}...</p>
+            <p className="text-muted-foreground text-xs font-mono mt-0.5">
+              #{tradeId?.slice(0, 16)}...
+            </p>
           </div>
         </div>
 
@@ -137,6 +132,24 @@ export default function TradeDetailPage() {
           </div>
         )}
 
+        {/* Guest banner */}
+        {!isLoggedIn && (
+          <div className="bg-accent border border-border rounded-xl px-5 py-4 mb-6">
+            <p className="text-accent-foreground text-sm font-medium mb-1">
+              👀 Viewing as guest
+            </p>
+            <p className="text-muted-foreground text-xs">
+              <span
+                className="text-primary cursor-pointer underline"
+                onClick={() => router.push('/auth/login')}
+              >
+                Login
+              </span>{' '}
+              to manage this trade.
+            </p>
+          </div>
+        )}
+
         {/* Trade Info Card */}
         <div className="bg-card border border-border rounded-xl p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
@@ -145,7 +158,6 @@ export default function TradeDetailPage() {
               {tradeStatus}
             </span>
           </div>
-
           <div className="flex flex-col gap-3">
             {[
               { label: 'Trade ID', value: tradeId },
@@ -189,7 +201,6 @@ export default function TradeDetailPage() {
               </span>
             )}
           </div>
-
           {escrow ? (
             <div className="flex flex-col gap-3">
               {[
@@ -223,8 +234,8 @@ export default function TradeDetailPage() {
           )}
         </div>
 
-        {/* Status Update Actions */}
-        {actions.length > 0 && (
+        {/* Status Update — logged in users only */}
+        {isLoggedIn && actions.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-6 mb-4">
             <h2 className="text-base font-semibold text-foreground mb-4">Update Trade Status</h2>
             <div className="flex gap-3 flex-wrap">
@@ -246,21 +257,19 @@ export default function TradeDetailPage() {
           </div>
         )}
 
-        {/* Admin/Moderator: Escrow Management */}
-        {(role === 'admin' || role === 'moderator') && escrow && escrow.status === 'locked' && (
+        {/* Admin/Moderator Escrow Management */}
+        {isLoggedIn && (role === 'admin' || role === 'moderator') && escrow?.status === 'locked' && (
           <div className="bg-card border border-border rounded-xl p-6 mb-4">
             <h2 className="text-base font-semibold text-foreground mb-2">Escrow Management</h2>
             <p className="text-muted-foreground text-xs mb-4">
               As an admin/moderator you can release or dispute this escrow.
             </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => router.push(`/admin/trades`)}
-                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
-              >
-                Manage in Admin Panel
-              </button>
-            </div>
+            <button
+              onClick={() => router.push('/admin/trades')}
+              className="w-full py-2.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              Manage in Admin Panel
+            </button>
           </div>
         )}
 
@@ -284,6 +293,27 @@ export default function TradeDetailPage() {
           </div>
         )}
 
+        {/* Guest login prompt at bottom */}
+        {!isLoggedIn && tradeStatus !== 'completed' && tradeStatus !== 'cancelled' && (
+          <div className="bg-card border border-border rounded-xl p-5 text-center mt-4">
+            <p className="text-foreground font-medium text-sm mb-2">Want to manage this trade?</p>
+            <p className="text-muted-foreground text-xs mb-4">Login or create a free account.</p>
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={() => router.push('/auth/login')}
+                className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-xs font-medium hover:bg-muted transition-colors cursor-pointer"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => router.push('/auth/register')}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Create Account
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

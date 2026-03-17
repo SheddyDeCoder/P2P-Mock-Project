@@ -14,7 +14,10 @@ export default function OffersPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [role, setRole] = useState<string>('user');
+  const [filterType, setFilterType] = useState<'all' | 'buy' | 'sell'>('all');
+  const [filterAsset, setFilterAsset] = useState<string>('all');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const [form, setForm] = useState<OfferPayload>({
     type: 'buy',
@@ -24,23 +27,25 @@ export default function OffersPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      router.replace('/auth/login');
-      return;
-    }
-    const storedRole = localStorage.getItem('role') ?? 'user';
-    setRole(storedRole);
-    fetchOffers(storedRole);
-  }, [router]);
+    setIsLoggedIn(!!token);
 
-  const fetchOffers = async (currentRole: string) => {
+    // Get current user id to hide "Start Trade" on own offers
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setCurrentUserId(parsed?.id ?? null);
+      } catch {}
+    }
+
+    fetchOffers();
+  }, []);
+
+  const fetchOffers = async () => {
     try {
       setLoading(true);
-      // GET /offers is admin only — skip for regular users
-      if (currentRole === 'admin') {
-        const data = await getOffers();
-        setOffers(data ?? []);
-      }
+      const data = await getOffers();
+      setOffers(data ?? []);
     } catch (err: any) {
       setError('Failed to load offers');
     } finally {
@@ -50,6 +55,13 @@ export default function OffersPage() {
 
   const handleCreateOffer = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Guests cannot create offers
+    if (!isLoggedIn) {
+      router.push('/auth/login');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     setSuccess(null);
@@ -63,12 +75,19 @@ export default function OffersPage() {
       setSuccess(`${form.type === 'buy' ? 'Buy' : 'Sell'} offer created successfully`);
       setShowForm(false);
       setForm({ type: 'buy', asset: 'USDT', price: 0 });
-      if (role === 'admin') await fetchOffers(role);
+      await fetchOffers();
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to create offer');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleStartTrade = (offer: any) => {
+    // Pass offer info to trades page via query params
+    router.push(
+      `/trades?offerId=${offer.id}&counterpartyId=${offer.userId}&asset=${offer.asset}&price=${offer.price}`,
+    );
   };
 
   const offerTypeStyle = (type: string) => {
@@ -77,13 +96,14 @@ export default function OffersPage() {
       : 'bg-destructive/10 text-destructive';
   };
 
-  const statusStyle = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active': return 'bg-primary/10 text-primary';
-      case 'closed': return 'bg-secondary text-secondary-foreground';
-      default: return 'bg-secondary text-secondary-foreground';
-    }
-  };
+  const filtered = offers.filter((o) => {
+    const matchesType = filterType === 'all' || o.type === filterType;
+    const matchesAsset = filterAsset === 'all' || o.asset === filterAsset;
+    return matchesType && matchesAsset;
+  });
+
+  const buyOffers = offers.filter((o) => o.type === 'buy').length;
+  const sellOffers = offers.filter((o) => o.type === 'sell').length;
 
   if (loading) {
     return (
@@ -95,30 +115,49 @@ export default function OffersPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-10">
-      <div className="max-w-xl mx-auto">
+      <div className="max-w-2xl mx-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="text-muted-foreground hover:text-foreground transition-colors text-xl"
-            >
-              ←
-            </button>
-            <h1 className="text-2xl font-bold text-foreground">Offers</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Active Offers</h1>
+            <p className="text-muted-foreground text-xs mt-1">
+              {isLoggedIn ? 'Browse and trade or create your own offer' : 'Browse offers and start trading — no account needed'}
+            </p>
           </div>
-          <button
-            onClick={() => { setShowForm(!showForm); setError(null); setSuccess(null); }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-              showForm
-                ? 'bg-secondary text-secondary-foreground hover:bg-muted'
-                : 'bg-primary text-primary-foreground hover:opacity-90'
-            }`}
-          >
-            {showForm ? 'Cancel' : '+ Create Offer'}
-          </button>
+          {/* Only logged in users can create offers */}
+          {isLoggedIn && (
+            <button
+              onClick={() => { setShowForm(!showForm); setError(null); setSuccess(null); }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                showForm
+                  ? 'bg-secondary text-secondary-foreground hover:bg-muted'
+                  : 'bg-primary text-primary-foreground hover:opacity-90'
+              }`}
+            >
+              {showForm ? 'Cancel' : '+ Create Offer'}
+            </button>
+          )}
         </div>
+
+        {/* Guest banner */}
+        {!isLoggedIn && (
+          <div className="bg-accent border border-border rounded-xl px-5 py-4 mb-6">
+            <p className="text-accent-foreground text-sm font-medium mb-1">
+              🚀 No account needed to trade!
+            </p>
+            <p className="text-muted-foreground text-xs">
+              Browse offers below and click <strong>Start Trade</strong> to begin.
+              Want to create your own offers?{' '}
+              <span
+                className="text-primary cursor-pointer underline"
+                onClick={() => router.push('/auth/register')}
+              >
+                Create a free account
+              </span>
+            </p>
+          </div>
+        )}
 
         {/* Feedback */}
         {error && (
@@ -132,15 +171,14 @@ export default function OffersPage() {
           </div>
         )}
 
-        {/* Create Offer Form */}
-        {showForm && (
+        {/* Create Offer Form — logged in only */}
+        {showForm && isLoggedIn && (
           <form
             onSubmit={handleCreateOffer}
             className="bg-card border border-border rounded-xl p-6 mb-6 flex flex-col gap-5"
           >
             <h3 className="text-foreground font-semibold text-base">Create New Offer</h3>
 
-            {/* Type Toggle */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">Offer Type</label>
               <div className="flex gap-2">
@@ -149,7 +187,7 @@ export default function OffersPage() {
                     key={t}
                     type="button"
                     onClick={() => setForm({ ...form, type: t })}
-                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer capitalize ${
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                       form.type === t
                         ? t === 'buy'
                           ? 'bg-primary text-primary-foreground'
@@ -163,7 +201,6 @@ export default function OffersPage() {
               </div>
             </div>
 
-            {/* Asset */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">Asset</label>
               <select
@@ -178,7 +215,6 @@ export default function OffersPage() {
               </select>
             </div>
 
-            {/* Price */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">Price (USD)</label>
               <input
@@ -193,7 +229,6 @@ export default function OffersPage() {
               />
             </div>
 
-            {/* Preview */}
             <div className="bg-muted rounded-lg px-4 py-3 text-sm text-muted-foreground">
               Creating a{' '}
               <span className={`font-medium ${form.type === 'buy' ? 'text-primary' : 'text-destructive'}`}>
@@ -215,96 +250,113 @@ export default function OffersPage() {
           </form>
         )}
 
-        {/* Info banner for regular users */}
-        {role !== 'admin' && (
-          <div className="bg-accent border border-border rounded-xl px-5 py-4 mb-6">
-            <p className="text-accent-foreground text-sm font-medium mb-1">Your Offers</p>
-            <p className="text-muted-foreground text-xs">
-              You can create buy or sell offers. Once created, other users can initiate trades against your offer.
-              Head to{' '}
-              <span
-                className="text-primary cursor-pointer underline"
-                onClick={() => router.push('/trades')}
-              >
-                Trades
-              </span>{' '}
-              to manage your active trades.
-            </p>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <p className="text-muted-foreground text-xs mb-1">Total</p>
+            <p className="text-foreground font-bold text-xl">{offers.length}</p>
           </div>
-        )}
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <p className="text-muted-foreground text-xs mb-1">Buy</p>
+            <p className="text-primary font-bold text-xl">{buyOffers}</p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <p className="text-muted-foreground text-xs mb-1">Sell</p>
+            <p className="text-destructive font-bold text-xl">{sellOffers}</p>
+          </div>
+        </div>
 
-        {/* Admin: All Offers List */}
-        {role === 'admin' && (
-          <>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-card border border-border rounded-xl p-4">
-                <p className="text-muted-foreground text-xs mb-1">Total Offers</p>
-                <p className="text-foreground font-bold text-xl">{offers.length}</p>
-              </div>
-              <div className="bg-card border border-border rounded-xl p-4">
-                <p className="text-muted-foreground text-xs mb-1">Active Offers</p>
-                <p className="text-primary font-bold text-xl">
-                  {offers.filter((o) => o.status === 'active').length}
-                </p>
-              </div>
-            </div>
+        {/* Filters */}
+        <div className="flex gap-2 mb-4 flex-wrap">
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as any)}
+            className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+          >
+            <option value="all">All Types</option>
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+          </select>
+          <select
+            value={filterAsset}
+            onChange={(e) => setFilterAsset(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+          >
+            <option value="all">All Assets</option>
+            {ASSETS.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+          <p className="text-muted-foreground text-xs self-center ml-auto">
+            {filtered.length} offer{filtered.length !== 1 ? 's' : ''} found
+          </p>
+        </div>
 
-            <h2 className="text-base font-semibold text-foreground mb-3">All Offers</h2>
-
-            {offers.length === 0 ? (
-              <div className="bg-card border border-border rounded-xl p-10 text-center">
-                <p className="text-muted-foreground text-sm">No offers yet.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {offers.map((o: any) => (
-                  <div
-                    key={o.id}
-                    className="bg-card border border-border rounded-xl px-5 py-4"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${offerTypeStyle(o.type)}`}>
-                          {o.type.toUpperCase()}
-                        </span>
-                        <span className="text-foreground font-semibold text-sm">{o.asset}</span>
-                      </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle(o.status)}`}>
-                        {o.status}
+        {/* Offers List */}
+        {filtered.length === 0 ? (
+          <div className="bg-card border border-border rounded-xl p-10 text-center">
+            <p className="text-muted-foreground text-sm mb-4">No active offers found.</p>
+            {isLoggedIn && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Create First Offer
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {filtered.map((o: any) => {
+              const isOwnOffer = currentUserId && o.userId === currentUserId;
+              return (
+                <div
+                  key={o.id}
+                  className="bg-card border border-border rounded-xl px-5 py-4"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${offerTypeStyle(o.type)}`}>
+                        {o.type.toUpperCase()}
                       </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div>
-                        <p className="mb-0.5">Price</p>
-                        <p className="text-foreground font-medium">${parseFloat(o.price).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="mb-0.5">Trades</p>
-                        <p className="text-foreground font-medium">{o.trades?.length ?? 0}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-3">
-                      <p className="text-muted-foreground text-xs">
-                        {new Date(o.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric', month: 'short', day: 'numeric',
-                        })}
-                      </p>
-                      {o.status === 'active' && (
-                        <button
-                          onClick={() => router.push('/trades')}
-                          className="text-xs text-primary underline cursor-pointer bg-transparent border-none"
-                        >
-                          View Trades →
-                        </button>
+                      <span className="text-foreground font-semibold text-sm">{o.asset}</span>
+                      {isOwnOffer && (
+                        <span className="px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground">
+                          Your offer
+                        </span>
                       )}
                     </div>
+                    <p className="text-foreground font-bold text-base">
+                      ${parseFloat(o.price).toFixed(2)}
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
-          </>
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-muted-foreground text-xs">
+                      {new Date(o.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                      })}
+                    </p>
+                    {!isOwnOffer ? (
+                      <button
+                        onClick={() => handleStartTrade(o)}
+                        className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-opacity cursor-pointer"
+                      >
+                        Start Trade →
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => router.push('/trades')}
+                        className="px-4 py-1.5 bg-secondary text-secondary-foreground rounded-lg text-xs font-medium hover:bg-muted transition-colors cursor-pointer"
+                      >
+                        View Trades
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
