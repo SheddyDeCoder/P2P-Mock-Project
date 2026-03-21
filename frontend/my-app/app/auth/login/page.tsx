@@ -45,6 +45,8 @@ export default function LoginPage() {
       router.refresh();
     } catch (err) {
       console.error('Login error:', err);
+      console.log('server response:', (err as any)?.response?.data); // 👈 add this
+      console.log('server status:', (err as any)?.response?.status);
 
       if (axios.isAxiosError(err)) {
         const serverMessage =
@@ -81,7 +83,9 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500 }}>
+          <label
+            style={{ display: 'block', marginBottom: '6px', fontWeight: 500 }}
+          >
             Email
           </label>
           <input
@@ -101,7 +105,9 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500 }}>
+          <label
+            style={{ display: 'block', marginBottom: '6px', fontWeight: 500 }}
+          >
             Password
           </label>
           <div style={{ position: 'relative' }}>
