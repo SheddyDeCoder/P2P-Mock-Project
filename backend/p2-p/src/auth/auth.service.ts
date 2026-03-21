@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { generateWalletCode } from './utils/walletAddress.utils';
 import { Role } from '@prisma/client';
+import { RegisterAdminDto } from './dto/register-admin.dto';
 
 @Injectable()
 export class AuthService {
@@ -116,5 +117,47 @@ export class AuthService {
     role: Role;
   }): Promise<string> {
     return this.jwt.signAsync(payload);
+  }
+
+  async createModerator(dto: RegisterAdminDto) {
+    const { email, username, password } = dto;
+
+    const emailExists = await this.prisma.user.findUnique({ where: { email } });
+    if (emailExists) {
+      return { message: 'Email already exists' };
+    }
+
+    const usernameExists = await this.prisma.user.findFirst({
+      where: { username },
+    });
+    if (usernameExists) {
+      return { message: 'Username already exists' };
+    }
+
+    const hashedPassword = await this.hashPassword(password);
+
+    let walletAddress = generateWalletCode(42);
+    let attempts = 0;
+
+    while (await this.prisma.user.findUnique({ where: { walletAddress } })) {
+      if (attempts++ > 5) {
+        throw new InternalServerErrorException(
+          'Failed to generate unique wallet address',
+        );
+      }
+      walletAddress = generateWalletCode(42);
+    }
+
+    await this.prisma.user.create({
+      data: {
+        email,
+        username,
+        hashedPassword, // ✅ correct field name
+        walletAddress, // ✅ required field
+        role: Role.moderator, // ✅ using the Prisma enum
+      },
+    });
+
+    return { message: 'Moderator created successfully' };
   }
 }

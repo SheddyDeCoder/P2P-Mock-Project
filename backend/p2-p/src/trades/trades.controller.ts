@@ -51,7 +51,7 @@ export class TradesController {
   }
 
   @Get()
-  @Roles('admin')
+  @Roles('admin', 'moderator')
   findAll() {
     return this.tradesService.findAll();
   }
