@@ -15,7 +15,7 @@ import { LoginDto } from './dto/loginDto.dto';
 import { ApiBearerAuth, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from './guard/jwt.guard';
 import { Roles } from './decorators/roles.decorator';
-import { RegisterAdminDto } from './dto/register-admin.dto';
+// import { RegisterAdminDto } from './dto/register-admin.dto';
 import { ApiBody } from '@nestjs/swagger';
 
 @ApiTags('Auth')
@@ -42,12 +42,12 @@ export class AuthController {
     return this.authService.logout(id);
   }
 
-  @Post('seed-moderator')
-  @ApiBody({ type: RegisterAdminDto })
-  seedModerator(@Body(ValidationPipe) dto: RegisterAdminDto) {
-    if (dto.secretKey !== 'my-secret-123') {
-      throw new Error('Unauthorized');
-    }
-    return this.authService.createModerator(dto);
-  }
+  // @Post('seed-moderator')
+  // @ApiBody({ type: RegisterAdminDto })
+  // seedModerator(@Body(ValidationPipe) dto: RegisterAdminDto) {
+  //   if (dto.secretKey !== 'my-secret-123') {
+  //     throw new Error('Unauthorized');
+  //   }
+  //   return this.authService.createModerator(dto);
+  // }
 }
