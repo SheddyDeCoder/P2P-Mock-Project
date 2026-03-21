@@ -19,6 +19,7 @@ export type SwapPayload = {
   fromAsset: string;
   toAsset: string;
   fromAmount: number;
+  direction: 'balance_to_wallet' | 'wallet_to_balance';
 };
 export type OfferPayload = {
   type: 'buy' | 'sell';

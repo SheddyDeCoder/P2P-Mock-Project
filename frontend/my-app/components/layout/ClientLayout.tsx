@@ -8,17 +8,20 @@ const PUBLIC_PATHS = [
   '/',
   '/auth/login',
   '/auth/register',
-  '/offers',   // guests can browse offers
-  '/trades',   // guests can trade
+  '/offers', // guests can browse offers
+  '/trades', // guests can trade
 ];
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+export default function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
 
   // Check if current path is public (exact match or starts with for nested routes)
   const isPublic =
-    PUBLIC_PATHS.includes(pathname) ||
-    pathname.startsWith('/trades/'); // guest can view trade detail too
+    PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/trades/'); // guest can view trade detail too
 
   if (isPublic) {
     return (
@@ -28,7 +31,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <div className="bg-card border-b border-border px-6 py-3 flex items-center justify-between">
             <h1
               className="text-foreground font-bold text-base cursor-pointer"
-              onClick={() => window.location.href = '/'}
+              onClick={() => (window.location.href = '/')}
             >
               P2P <span className="text-primary">Exchange</span>
             </h1>
