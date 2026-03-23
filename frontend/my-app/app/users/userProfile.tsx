@@ -110,6 +110,12 @@ export default function DashboardPage() {
     profile?.wallets?.reduce((sum, wallet) => sum + (wallet.balance || 0), 0) ||
     0;
 
+  // Helper to format number with commas and 2 decimal places
+  const formatBalance = (value: number | undefined) => {
+    if (value === undefined || isNaN(value)) return '0.00';
+    return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  };
+
   if (loading) {
     return (
       <div
@@ -244,7 +250,7 @@ export default function DashboardPage() {
                 Account Balance
               </h3>
               <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold' }}>
-                ${profile.balance?.toFixed(2) || '0.00'}
+                ${formatBalance(profile.balance)}
               </p>
             </div>
 

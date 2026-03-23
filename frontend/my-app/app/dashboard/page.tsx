@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, easeOut } from 'framer-motion'; // ← corrected import (added easeOut)
+import { motion, easeOut } from 'framer-motion';
 import {
   getMyProfile,
   getMyWallets,
   getMyFunding,
   getSwapHistory,
 } from '@/lib/services';
+
+const formatAmount = (value: number | string, decimals = 2) => {
+  const num = parseFloat(String(value));
+  return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -72,7 +77,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -86,7 +90,7 @@ export default function DashboardPage() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: easeOut }, // ← corrected: use easeOut function
+      transition: { duration: 0.6, ease: easeOut },
     },
   };
 
@@ -133,18 +137,23 @@ export default function DashboardPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
           {[
-            { label: 'Main Balance', value: `$${parseFloat(profile?.balance ?? 0).toFixed(2)}` },
-            { label: 'Wallet Balance', value: `$${totalWalletBalance.toFixed(2)}` },
+            { label: 'Main Balance', value: `$${formatAmount(profile?.balance ?? 0)}` },
+            { label: 'Wallet Balance', value: `$${formatAmount(totalWalletBalance)}` },
             { label: 'Wallets', value: wallets.length },
             { label: 'Transactions', value: funding.length },
             { label: 'Swaps', value: swaps.length },
           ].map((card) => (
             <div
               key={card.label}
-              className="bg-card border border-border rounded-xl p-4 text-center"
+              className="bg-card border border-border rounded-xl p-4 text-center overflow-hidden min-w-0"
             >
-              <p className="text-muted-foreground text-xs mb-1">{card.label}</p>
-              <p className="text-foreground font-bold text-xl">{card.value}</p>
+              <p className="text-muted-foreground text-xs mb-1 truncate">{card.label}</p>
+              <p
+                className="text-foreground font-bold leading-tight break-all"
+                style={{ fontSize: 'clamp(0.65rem, 1.8vw, 1.25rem)' }}
+              >
+                {card.value}
+              </p>
             </div>
           ))}
         </div>
@@ -204,7 +213,7 @@ export default function DashboardPage() {
                     key={f.id}
                     className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                   >
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-foreground font-medium text-sm">
                         {f.type === 'deposit' ? '⬇️ Deposit' : '⬆️ Withdrawal'} · {f.asset}
                       </p>
@@ -212,9 +221,9 @@ export default function DashboardPage() {
                         {new Date(f.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right ml-2 shrink-0">
                       <p className="text-foreground font-bold text-sm">
-                        ${parseFloat(f.amount).toFixed(2)}
+                        ${formatAmount(f.amount)}
                       </p>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${statusStyle(f.status)}`}>
                         {f.status}
@@ -255,14 +264,14 @@ export default function DashboardPage() {
                     key={w.id}
                     className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                   >
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-foreground font-medium text-sm">{w.asset}</p>
-                      <p className="text-muted-foreground text-xs mt-0.5">
+                      <p className="text-muted-foreground text-xs mt-0.5 truncate">
                         {w.walletAddress?.slice(0, 16)}...
                       </p>
                     </div>
-                    <p className="text-foreground font-bold text-sm">
-                      {parseFloat(w.balance).toFixed(4)}
+                    <p className="text-foreground font-bold text-sm ml-2 shrink-0">
+                      {formatAmount(w.balance, 4)}
                     </p>
                   </div>
                 ))}
@@ -287,12 +296,12 @@ export default function DashboardPage() {
                       key={s.id}
                       className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                     >
-                      <p className="text-foreground font-medium text-sm">
+                      <p className="text-foreground font-medium text-sm min-w-0 flex-1">
                         {s.fromAsset} → {s.toAsset}
                       </p>
-                      <div className="text-right">
+                      <div className="text-right ml-2 shrink-0">
                         <p className="text-foreground text-sm">
-                          {parseFloat(s.fromAmount).toFixed(4)}
+                          {formatAmount(s.fromAmount, 4)}
                         </p>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${statusStyle(s.status)}`}>
                           {s.status}
