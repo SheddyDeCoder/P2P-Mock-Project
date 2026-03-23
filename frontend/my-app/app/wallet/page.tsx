@@ -14,6 +14,7 @@ export default function WalletPage() {
   const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState<WalletFundPayload>({
+    type: 'deposit',
     walletAddress: '',
     asset: '',
     amount: 0,
@@ -48,13 +49,14 @@ export default function WalletPage() {
 
     try {
       await fundWallet({
+        type: form.type,
         walletAddress: form.walletAddress.trim(),
         asset: form.asset.trim().toUpperCase(),
         amount: Number(form.amount),
       });
       setSuccess('Wallet funded successfully');
       setShowForm(false);
-      setForm({ walletAddress: '', asset: '', amount: 0 });
+      setForm({ type: 'deposit', walletAddress: '', asset: '', amount: 0 });
       await fetchWallets();
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to fund wallet');
@@ -79,7 +81,6 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-10">
       <div className="max-w-xl mx-auto">
-
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -92,7 +93,11 @@ export default function WalletPage() {
             <h1 className="text-2xl font-bold text-foreground">My Wallets</h1>
           </div>
           <button
-            onClick={() => { setShowForm(!showForm); setError(null); setSuccess(null); }}
+            onClick={() => {
+              setShowForm(!showForm);
+              setError(null);
+              setSuccess(null);
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
               showForm
                 ? 'bg-secondary text-secondary-foreground hover:bg-muted'
@@ -121,22 +126,52 @@ export default function WalletPage() {
             onSubmit={handleFund}
             className="bg-card border border-border rounded-xl p-6 mb-6 flex flex-col gap-5"
           >
-            <h3 className="text-foreground font-semibold text-base">Fund a Wallet</h3>
+            <h3 className="text-foreground font-semibold text-base">
+              Fund a Wallet
+            </h3>
 
+            {/* Type */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Wallet Address</label>
+              <label className="text-sm font-medium text-foreground">
+                Type
+              </label>
+              <select
+                value={form.type}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    type: e.target.value as 'deposit' | 'withdrawal',
+                  })
+                }
+                className="w-full px-4 py-2.5 rounded-lg bg-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="deposit">Deposit</option>
+                <option value="withdrawal">Withdrawal</option>
+              </select>
+            </div>
+
+            {/* Wallet Address */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">
+                Wallet Address
+              </label>
               <input
                 type="text"
                 value={form.walletAddress}
-                onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, walletAddress: e.target.value })
+                }
                 placeholder="Enter wallet address"
                 required
                 className="w-full px-4 py-2.5 rounded-lg bg-muted border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
+            {/* Asset */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Asset</label>
+              <label className="text-sm font-medium text-foreground">
+                Asset
+              </label>
               <input
                 type="text"
                 value={form.asset}
@@ -147,12 +182,17 @@ export default function WalletPage() {
               />
             </div>
 
+            {/* Amount */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Amount</label>
+              <label className="text-sm font-medium text-foreground">
+                Amount
+              </label>
               <input
                 type="number"
                 value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) })}
+                onChange={(e) =>
+                  setForm({ ...form, amount: parseFloat(e.target.value) })
+                }
                 placeholder="0.00"
                 min="0"
                 step="any"
@@ -173,15 +213,23 @@ export default function WalletPage() {
 
         {/* Total Balance */}
         <div className="bg-card border border-border rounded-xl p-6 mb-6">
-          <p className="text-muted-foreground text-sm mb-1">Total Wallet Balance</p>
-          <p className="text-3xl font-bold text-primary">${totalBalance.toFixed(2)}</p>
-          <p className="text-muted-foreground text-xs mt-1">{wallets.length} asset wallet{wallets.length !== 1 ? 's' : ''}</p>
+          <p className="text-muted-foreground text-sm mb-1">
+            Total Wallet Balance
+          </p>
+          <p className="text-3xl font-bold text-primary">
+            ${totalBalance.toFixed(2)}
+          </p>
+          <p className="text-muted-foreground text-xs mt-1">
+            {wallets.length} asset wallet{wallets.length !== 1 ? 's' : ''}
+          </p>
         </div>
 
         {/* Wallet List */}
         {wallets.length === 0 ? (
           <div className="bg-card border border-border rounded-xl p-10 text-center">
-            <p className="text-muted-foreground text-sm mb-4">No wallets yet.</p>
+            <p className="text-muted-foreground text-sm mb-4">
+              No wallets yet.
+            </p>
             <button
               onClick={() => setShowForm(true)}
               className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
@@ -193,16 +241,18 @@ export default function WalletPage() {
           <div className="flex flex-col gap-3">
             {wallets.map((w: any) => (
               <div
-                key={w.id}
+                key={w.asset}
                 className="bg-card border border-border rounded-xl px-5 py-4 flex items-center justify-between"
               >
                 <div>
-                  <p className="text-foreground font-semibold text-base">{w.asset}</p>
+                  <p className="text-foreground font-semibold text-base">
+                    {w.asset}
+                  </p>
                   <p className="text-muted-foreground text-xs mt-1 break-all">
                     {w.walletAddress}
                   </p>
                   <p className="text-muted-foreground text-xs mt-0.5">
-                    Added {new Date(w.createdAt).toLocaleDateString()}
+                    Updated {new Date(w.updatedAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="text-right ml-4 shrink-0">

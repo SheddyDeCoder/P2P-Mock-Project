@@ -290,7 +290,7 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-2 mb-6">
                 {wallets.map((w: any) => (
                   <div
-                    key={w.id}
+                    key={w.asset}
                     className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                   >
                     <div>

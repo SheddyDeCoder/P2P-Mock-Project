@@ -71,8 +71,9 @@ export default function AdminDashboardPage() {
     0,
   );
 
-  const recentFunding = funding.slice(0, 5);
-  const recentSwaps = swaps.slice(0, 3);
+  const recentFunding = funding.slice(0, 4);
+  const recentSwaps = swaps.slice(0, 2);
+  const recentWallets = wallets.slice(0, 2);
 
   const statusStyle = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -304,9 +305,9 @@ export default function AdminDashboardPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-2 mb-6">
-                {wallets.map((w: any) => (
+                {recentWallets.map((w: any) => (
                   <div
-                    key={w.id}
+                    key={w.asset}
                     className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                   >
                     <div>

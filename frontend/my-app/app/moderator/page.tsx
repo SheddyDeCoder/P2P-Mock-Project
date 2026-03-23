@@ -181,10 +181,11 @@ export default function ModeratorPage() {
     t.seller_id?.slice(0, 10) ||
     'N/A';
 
-  const filteredTrades =
+  const filteredTrades = (
     filterStatus === 'all'
       ? trades
-      : trades.filter((t) => t.status === filterStatus);
+      : trades.filter((t) => t.status === filterStatus)
+  ).slice(0, 2);
 
   const summaryCards = [
     { label: 'Total Trades', value: trades.length },
@@ -506,6 +507,16 @@ export default function ModeratorPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+          {filteredTrades.length > 0 && (
+            <div className="mt-3 text-center">
+              <button
+                onClick={() => router.push('/trades')}
+                className="text-sm text-primary hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none"
+              >
+                View all trades →
+              </button>
             </div>
           )}
         </div>
