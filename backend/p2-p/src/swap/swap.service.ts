@@ -26,7 +26,16 @@ export class SwapService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    const rate = await this.exchangeRate.getRate(fromAsset, toAsset);
+    // ✅ Wrapped in try/catch — prevents unhandled 500 if rate fetch fails
+    let rate: number;
+    try {
+      rate = await this.exchangeRate.getRate(fromAsset, toAsset);
+    } catch (err) {
+      throw new BadRequestException(
+        `Could not fetch exchange rate for ${fromAsset} → ${toAsset}. Try again later.`,
+      );
+    }
+
     const toAmount = fromAmount * rate;
     const reference = uuidv4();
 
@@ -51,13 +60,11 @@ export class SwapService {
           },
         });
 
-        // Deduct from user.balance
         await tx.user.update({
           where: { id: userId },
           data: { balance: { decrement: fromAmount } },
         });
 
-        // Credit to asset wallet — create if it doesn't exist yet
         await tx.wallet.upsert({
           where: { userId_asset: { userId, asset: toAsset } },
           create: {
@@ -104,13 +111,11 @@ export class SwapService {
           },
         });
 
-        // Deduct from asset wallet
         await tx.wallet.update({
           where: { userId_asset: { userId, asset: fromAsset } },
           data: { balance: { decrement: fromAmount } },
         });
 
-        // Credit to user.balance
         await tx.user.update({
           where: { id: userId },
           data: { balance: { increment: toAmount } },

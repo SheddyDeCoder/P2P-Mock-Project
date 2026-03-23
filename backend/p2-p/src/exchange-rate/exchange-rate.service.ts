@@ -15,8 +15,11 @@ export class ExchangeRateService {
   private readonly COINGECKO_IDS: Record<string, string> = {
     BTC: 'bitcoin',
     ETH: 'ethereum',
-    USD: 'usd', // USD is a vs_currency, not a coin — handled separately
-    NGN: 'ngn', // NGN is also a vs_currency
+    USDT: 'tether',
+    BNB: 'binancecoin',
+    SOL: 'solana',
+    USD: 'usd',
+    NGN: 'ngn',
   };
 
   private readonly VS_CURRENCIES = ['usd', 'ngn', 'btc', 'eth'];
@@ -24,7 +27,13 @@ export class ExchangeRateService {
   /**
    * CRYPTO COINS — these are the assets we fetch prices for.
    */
-  private readonly CRYPTO_IDS = ['bitcoin', 'ethereum'];
+  private readonly CRYPTO_IDS = [
+    'bitcoin',
+    'ethereum',
+    'tether',
+    'binancecoin',
+    'solana',
+  ];
 
   async getRate(from: string, to: string): Promise<number> {
     await this.refreshIfStale();
@@ -83,7 +92,41 @@ export class ExchangeRateService {
         ETH: {},
         USD: {},
         NGN: {},
+        USDT: {},
+        BNB: {},
+        SOL: {},
       };
+
+      if (data.tether) {
+        rates.USDT.USD = data.tether.usd;
+        rates.USDT.BTC = data.tether.btc;
+        rates.USDT.ETH = data.tether.eth;
+        rates.USDT.NGN = data.tether.ngn;
+      }
+
+      // BNB
+      if (data.binancecoin) {
+        rates.BNB.USD = data.binancecoin.usd;
+        rates.BNB.BTC = data.binancecoin.btc;
+        rates.BNB.ETH = data.binancecoin.eth;
+        rates.BNB.NGN = data.binancecoin.ngn;
+      }
+
+      // SOL
+      if (data.solana) {
+        rates.SOL.USD = data.solana.usd;
+        rates.SOL.BTC = data.solana.btc;
+        rates.SOL.ETH = data.solana.eth;
+        rates.SOL.NGN = data.solana.ngn;
+      }
+
+      // Update inverse rates for USD and NGN to include new assets
+      if (data.tether?.usd) rates.USD.USDT = 1 / data.tether.usd;
+      if (data.binancecoin?.usd) rates.USD.BNB = 1 / data.binancecoin.usd;
+      if (data.solana?.usd) rates.USD.SOL = 1 / data.solana.usd;
+      if (data.tether?.ngn) rates.NGN.USDT = 1 / data.tether.ngn;
+      if (data.binancecoin?.ngn) rates.NGN.BNB = 1 / data.binancecoin.ngn;
+      if (data.solana?.ngn) rates.NGN.SOL = 1 / data.solana.ngn;
 
       // BTC rates (from CoinGecko `bitcoin` entry)
       if (data.bitcoin) {
@@ -129,10 +172,62 @@ export class ExchangeRateService {
       if (Object.keys(this.cachedRates).length === 0) {
         this.logger.warn('Using fallback hardcoded rates');
         this.cachedRates = {
-          BTC: { USD: 65000, NGN: 105000000, ETH: 18 },
-          ETH: { USD: 3500, NGN: 5600000, BTC: 0.054 },
-          USD: { NGN: 1600, BTC: 0.000015, ETH: 0.00028 },
-          NGN: { USD: 0.00063, BTC: 0.0000000095, ETH: 0.00000018 },
+          BTC: {
+            USD: 65000,
+            NGN: 105000000,
+            ETH: 18,
+            USDT: 65000,
+            BNB: 450,
+            SOL: 1000,
+          },
+          ETH: {
+            USD: 3500,
+            NGN: 5600000,
+            BTC: 0.054,
+            USDT: 3500,
+            BNB: 24,
+            SOL: 54,
+          },
+          USDT: {
+            USD: 1,
+            NGN: 1600,
+            BTC: 0.000015,
+            ETH: 0.00028,
+            BNB: 0.007,
+            SOL: 0.007,
+          },
+          BNB: {
+            USD: 580,
+            NGN: 928000,
+            BTC: 0.0089,
+            ETH: 0.165,
+            USDT: 580,
+            SOL: 8,
+          },
+          SOL: {
+            USD: 145,
+            NGN: 232000,
+            BTC: 0.0022,
+            ETH: 0.041,
+            USDT: 145,
+            BNB: 0.25,
+          },
+          USD: {
+            NGN: 1600,
+            BTC: 0.000015,
+            ETH: 0.00028,
+            USDT: 1,
+            BNB: 0.0017,
+            SOL: 0.007,
+          },
+          NGN: {
+            USD: 0.00063,
+            BTC: 0.0000000095,
+            ETH: 0.00000018,
+            USDT: 0.00063,
+            BNB: 0.0000011,
+            SOL: 0.0000043,
+          },
         };
       }
     }
