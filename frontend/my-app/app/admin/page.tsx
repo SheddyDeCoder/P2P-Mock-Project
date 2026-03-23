@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, easeOut } from 'framer-motion'; // ← corrected import (added easeOut)
+import { easeOut, motion } from 'framer-motion';
 import {
   getMyProfile,
   getMyWallets,
@@ -10,8 +10,9 @@ import {
   getSwapHistory,
 } from '@/lib/services';
 
-export default function DashboardPage() {
+export default function AdminDashboardPage() {
   const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [wallets, setWallets] = useState<any[]>([]);
   const [funding, setFunding] = useState<any[]>([]);
@@ -22,20 +23,17 @@ export default function DashboardPage() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
+
     if (!token) {
       router.replace('/auth/login');
       return;
     }
+    if (role !== 'admin') {
+      router.replace('/dashboard');
+      return;
+    }
 
-    // ✅ Redirect admins and moderators away from the user dashboard
-    if (role === 'admin') {
-      router.replace('/admin');
-      return;
-    }
-    if (role === 'moderator') {
-      router.replace('/moderator');
-      return;
-    }
+    setAuthorized(true);
 
     const fetchAll = async () => {
       try {
@@ -66,6 +64,8 @@ export default function DashboardPage() {
     fetchAll();
   }, [router]);
 
+  if (!authorized) return null;
+
   const totalWalletBalance = wallets.reduce(
     (sum: number, w: any) => sum + parseFloat(w.balance ?? 0),
     0,
@@ -89,28 +89,6 @@ export default function DashboardPage() {
       default:
         return 'bg-secondary text-secondary-foreground';
     }
-  };
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: easeOut }, // ← corrected: use easeOut function
-    },
-  };
-
-  const cardHover = {
-    hover: { scale: 1.03, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' },
   };
 
   if (loading) {
@@ -142,11 +120,10 @@ export default function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-foreground">
             Welcome back,{' '}
-            {profile?.username || profile?.email?.split('@')[0] || 'User'} 👋
+            {profile?.username || profile?.email?.split('@')[0] || 'Admin'} 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {profile?.email} · Role:{' '}
-            {profile?.role ?? localStorage.getItem('role') ?? 'user'}
+            {profile?.email} · Role: admin
           </p>
         </div>
 
@@ -173,6 +150,45 @@ export default function DashboardPage() {
               <p className="text-foreground font-bold text-xl">{card.value}</p>
             </div>
           ))}
+        </div>
+
+        {/* Admin Sections */}
+        <div className="mb-8">
+          <h2 className="text-base font-semibold text-foreground mb-3">
+            Admin Panel
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              {
+                label: '👥 Users',
+                description: 'Manage user roles and accounts',
+                path: '/admin/users',
+              },
+              {
+                label: '📁 Trades',
+                description: 'View and manage all trades',
+                path: '/admin/trades',
+              },
+              {
+                label: '📌 Offers',
+                description: 'View and manage all offers',
+                path: '/admin/offers',
+              },
+            ].map((item) => (
+              <button
+                key={item.path}
+                onClick={() => router.push(item.path)}
+                className="bg-card border border-border rounded-xl p-5 text-left hover:bg-muted transition-colors cursor-pointer"
+              >
+                <p className="text-foreground font-semibold text-base mb-1">
+                  {item.label}
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  {item.description}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -309,7 +325,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Recent Swaps */}
             {recentSwaps.length > 0 && (
               <>
                 <div className="flex items-center justify-between mb-3">
