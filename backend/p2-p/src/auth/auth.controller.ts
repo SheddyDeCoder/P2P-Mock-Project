@@ -17,6 +17,7 @@ import { JwtAuthGuard } from './guard/jwt.guard';
 import { Roles } from './decorators/roles.decorator';
 // import { RegisterAdminDto } from './dto/register-admin.dto';
 import { ApiBody } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -28,6 +29,7 @@ export class AuthController {
     return this.authService.create(registerDto);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   login(@Body(ValidationPipe) loginDto: LoginDto) {
     return this.authService.login(loginDto);

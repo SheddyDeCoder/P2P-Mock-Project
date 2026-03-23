@@ -26,11 +26,10 @@ export class SwapService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    // ✅ Wrapped in try/catch — prevents unhandled 500 if rate fetch fails
     let rate: number;
     try {
       rate = await this.exchangeRate.getRate(fromAsset, toAsset);
-    } catch (err) {
+    } catch {
       throw new BadRequestException(
         `Could not fetch exchange rate for ${fromAsset} → ${toAsset}. Try again later.`,
       );
@@ -40,9 +39,14 @@ export class SwapService {
     const reference = uuidv4();
 
     if (direction === 'balance_to_wallet') {
-      if (Number(user.balance) < fromAmount) {
+      // Check sender's fromAsset wallet balance
+      const fromWallet = await this.prisma.wallet.findUnique({
+        where: { userId_asset: { userId, asset: fromAsset } },
+      });
+
+      if (!fromWallet || Number(fromWallet.balance) < fromAmount) {
         throw new BadRequestException(
-          `Insufficient balance — have ${user.balance}, need ${fromAmount}`,
+          `Insufficient ${fromAsset} wallet balance — have ${fromWallet?.balance ?? 0}, need ${fromAmount}`,
         );
       }
 
@@ -60,11 +64,13 @@ export class SwapService {
           },
         });
 
-        await tx.user.update({
-          where: { id: userId },
+        // Deduct from fromAsset wallet
+        await tx.wallet.update({
+          where: { userId_asset: { userId, asset: fromAsset } },
           data: { balance: { decrement: fromAmount } },
         });
 
+        // Credit toAsset wallet (create if it doesn't exist)
         await tx.wallet.upsert({
           where: { userId_asset: { userId, asset: toAsset } },
           create: {
@@ -82,18 +88,19 @@ export class SwapService {
       });
 
       return {
-        message: `Swapped ${fromAmount} ${fromAsset} balance → ${result.toAmount} ${toAsset} wallet`,
+        message: `Swapped ${fromAmount} ${fromAsset} → ${result.toAmount} ${toAsset}`,
         rate,
         swap: result,
       };
     } else if (direction === 'wallet_to_balance') {
-      const wallet = await this.prisma.wallet.findUnique({
+      // Check sender's fromAsset wallet balance
+      const fromWallet = await this.prisma.wallet.findUnique({
         where: { userId_asset: { userId, asset: fromAsset } },
       });
 
-      if (!wallet || Number(wallet.balance) < fromAmount) {
+      if (!fromWallet || Number(fromWallet.balance) < fromAmount) {
         throw new BadRequestException(
-          `Insufficient ${fromAsset} wallet balance — have ${wallet?.balance ?? 0}, need ${fromAmount}`,
+          `Insufficient ${fromAsset} wallet balance — have ${fromWallet?.balance ?? 0}, need ${fromAmount}`,
         );
       }
 
@@ -111,21 +118,31 @@ export class SwapService {
           },
         });
 
+        // Deduct from fromAsset wallet
         await tx.wallet.update({
           where: { userId_asset: { userId, asset: fromAsset } },
           data: { balance: { decrement: fromAmount } },
         });
 
-        await tx.user.update({
-          where: { id: userId },
-          data: { balance: { increment: toAmount } },
+        // Credit toAsset wallet (create if it doesn't exist)
+        await tx.wallet.upsert({
+          where: { userId_asset: { userId, asset: toAsset } },
+          create: {
+            userId,
+            walletAddress: user.walletAddress ?? '',
+            asset: toAsset,
+            balance: toAmount,
+          },
+          update: {
+            balance: { increment: toAmount },
+          },
         });
 
         return swap;
       });
 
       return {
-        message: `Swapped ${fromAmount} ${fromAsset} wallet → ${result.toAmount} ${toAsset} balance`,
+        message: `Swapped ${fromAmount} ${fromAsset} → ${result.toAmount} ${toAsset}`,
         rate,
         swap: result,
       };
