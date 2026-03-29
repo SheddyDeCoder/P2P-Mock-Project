@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSwap, getSwapHistory, SwapPayload } from '@/lib/services';
 
-const ASSETS = ['USDT', 'BTC', 'ETH', 'BNB', 'SOL'];
+const ASSETS = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL'];
 
 const DIRECTIONS = [
   {
@@ -49,8 +49,13 @@ export default function SwapPage() {
       setLoading(true);
       const data = await getSwapHistory();
       setSwaps(data ?? []);
-    } catch {
-      setError('Failed to load swap history');
+    } catch (err: any) {
+      console.log('Swap history error:', err?.response?.data);
+      const serverMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        'Failed to load swap history';
+      setError(serverMessage);
     } finally {
       setLoading(false);
     }
@@ -87,7 +92,15 @@ export default function SwapPage() {
       });
       await fetchSwaps();
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to submit swap');
+      console.log('Swap error:', err?.response?.data);
+
+      const serverMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        (typeof err?.response?.data === 'string' ? err.response.data : null) ||
+        'Failed to submit swap';
+
+      setError(serverMessage);
     } finally {
       setSubmitting(false);
     }

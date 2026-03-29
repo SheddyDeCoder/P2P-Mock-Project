@@ -3,8 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
-const userNavItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: '📊' },
+// ✅ After — dynamic based on role
+const getDashboardPath = (role: string) => {
+  if (role === 'admin') return '/admin';
+  if (role === 'moderator') return '/moderator';
+  return '/dashboard';
+};
+
+const getUserNavItems = (role: string) => [
+  { label: 'Dashboard', path: getDashboardPath(role), icon: '📊' },
   { label: 'Wallet', path: '/wallet', icon: '👛' },
   { label: 'Funding', path: '/funding', icon: '🏦' },
   { label: 'Swap', path: '/swap', icon: '🔄' },
@@ -69,7 +76,7 @@ function NavContent({
           Main
         </p>
         <ul className="flex flex-col gap-1 mb-6">
-          {userNavItems.map((item) => (
+          {getUserNavItems(role).map((item) => (
             <li key={item.path}>
               <button
                 onClick={() => onNavigate(item.path)}

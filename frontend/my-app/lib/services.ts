@@ -40,6 +40,7 @@ export type EscrowUpdatePayload = {
   contractAddress?: string;
 };
 export type WalletFundPayload = {
+  type: 'deposit' | 'withdrawal';
   walletAddress: string;
   asset: string;
   amount: number;

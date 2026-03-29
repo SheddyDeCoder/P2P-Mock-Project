@@ -6,6 +6,16 @@ import api from '@/lib/api';
 import axios from 'axios';
 import { LoginPayload } from '@/lib/services';
 
+// Role route map
+const getRoleRoute = (role: string): string => {
+  const routes: Record<string, string> = {
+    admin: '/admin',
+    moderator: '/moderator',
+    user: '/dashboard',
+  };
+  return routes[role] ?? '/dashboard';
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -40,8 +50,8 @@ export default function LoginPage() {
       localStorage.setItem('token', token);
       localStorage.setItem('role', role ?? 'user');
 
-      // Redirect to dashboard
-      router.push('/dashboard');
+      // Redirect based on role
+      router.push(getRoleRoute(role));
       router.refresh();
     } catch (err) {
       console.error('Login error:', err);

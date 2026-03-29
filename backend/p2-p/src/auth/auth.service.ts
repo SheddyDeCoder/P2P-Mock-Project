@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { RegisterDto } from './dto/register-auth.dto';
 import { LoginDto } from './dto/loginDto.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -18,16 +23,15 @@ export class AuthService {
   async create(registerDto: RegisterDto) {
     const { email, username, password } = registerDto;
 
-    const emailExists = await this.prisma.user.findUnique({ where: { email } });
-    if (emailExists) {
-      return { message: 'Email already exists' };
-    }
+    const [emailExists, usernameExists] = await Promise.all([
+      this.prisma.user.findUnique({ where: { email } }),
+      this.prisma.user.findFirst({ where: { username } }),
+    ]);
 
-    const usernameExists = await this.prisma.user.findFirst({
-      where: { username },
-    });
-    if (usernameExists) {
-      return { message: 'Username already exists' };
+    if (emailExists || usernameExists) {
+      throw new ConflictException(
+        'Registration failed. Please try different credentials.',
+      );
     }
 
     const hashedPassword = await this.hashPassword(password);
@@ -66,8 +70,10 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({ where: { email } });
 
+    const DUMMY_HASH = '$2b$10$dummyhashfortimingnobodyusesthis1234567890';
     if (!user) {
-      return { message: 'Invalid email or password' };
+      await bcrypt.compare(password, DUMMY_HASH); // burn time 😂
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const passwordMatch = await this.comparePassword({
@@ -76,7 +82,7 @@ export class AuthService {
     });
 
     if (!passwordMatch) {
-      return { message: 'Invalid email or password' };
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const token = await this.generateToken({
@@ -99,7 +105,7 @@ export class AuthService {
   }
 
   async hashPassword(password: string): Promise<string> {
-    const saltRounds = 10;
+    const saltRounds = 12;
     return await bcrypt.hash(password, saltRounds);
   }
 

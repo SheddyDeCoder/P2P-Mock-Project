@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  getMyProfile,
   getMyTrades,
   updateTradeStatus,
   getEscrowByTrade,
@@ -11,6 +12,12 @@ import {
 
 export default function ModeratorPage() {
   const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
+
+  // Profile only — moderator has no access to wallet/funding/swap
+  const [profile, setProfile] = useState<any>(null);
+
+  // Moderator data
   const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -20,6 +27,27 @@ export default function ModeratorPage() {
   const [escrows, setEscrows] = useState<Record<string, any>>({});
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
+  async function fetchDashboard() {
+    try {
+      const profileData = await getMyProfile().catch(() => null);
+      if (profileData) setProfile(profileData);
+    } catch {
+      // profile fetch failed silently
+    }
+  }
+
+  async function fetchTrades() {
+    try {
+      setLoading(true);
+      const data = await getMyTrades();
+      setTrades(Array.isArray(data) ? data : []);
+    } catch {
+      setError('Failed to load trades');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
@@ -27,11 +55,13 @@ export default function ModeratorPage() {
       router.replace('/auth/login');
       return;
     }
-    if (role !== 'admin' && role !== 'moderator') {
+    if (role !== 'moderator') {
       router.replace('/dashboard');
       return;
     }
+    setAuthorized(true);
     fetchTrades();
+    fetchDashboard();
   }, [router]);
 
   useEffect(() => {
@@ -43,17 +73,7 @@ export default function ModeratorPage() {
     return () => clearTimeout(t);
   }, [error, success]);
 
-  const fetchTrades = async () => {
-    try {
-      setLoading(true);
-      const data = await getMyTrades();
-      setTrades(Array.isArray(data) ? data : []);
-    } catch {
-      setError('Failed to load trades');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!authorized) return null;
 
   const fetchEscrow = async (tradeId: string) => {
     if (escrows[tradeId] !== undefined) return;
@@ -153,6 +173,7 @@ export default function ModeratorPage() {
     t.buyerId?.slice(0, 10) ||
     t.buyer_id?.slice(0, 10) ||
     'N/A';
+
   const getSeller = (t: any) =>
     t.seller?.username ||
     t.seller?.email ||
@@ -160,10 +181,11 @@ export default function ModeratorPage() {
     t.seller_id?.slice(0, 10) ||
     'N/A';
 
-  const filteredTrades =
+  const filteredTrades = (
     filterStatus === 'all'
       ? trades
-      : trades.filter((t) => t.status === filterStatus);
+      : trades.filter((t) => t.status === filterStatus)
+  ).slice(0, 2);
 
   const summaryCards = [
     { label: 'Total Trades', value: trades.length },
@@ -185,27 +207,18 @@ export default function ModeratorPage() {
     },
   ];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground text-sm">Loading trades...</p>
-      </div>
-    );
-  }
-
   return (
-    // Outer: full viewport, opaque bg — covers fixed sidebar completely
-    // No max-width here, no centering — must span 100% of main area
-    <div className="min-h-screen bg-background text-foreground w-full">
-      {/* Inner: padding + content width constraint */}
-      <div className="px-6 py-10">
+    <div className="min-h-screen bg-background text-foreground px-4 py-10">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-foreground">
-            Moderator Panel 🛡️
+            Welcome back,{' '}
+            {profile?.username || profile?.email?.split('@')[0] || 'Moderator'}{' '}
+            🛡️
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage and review all platform trades
+            {profile?.email} · Role: moderator
           </p>
         </div>
 
@@ -221,15 +234,8 @@ export default function ModeratorPage() {
           </div>
         )}
 
-        {/* Summary Cards */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: '12px',
-            marginBottom: '32px',
-          }}
-        >
+        {/* Trade Summary Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
           {summaryCards.map((card) => (
             <div
               key={card.label}
@@ -241,6 +247,40 @@ export default function ModeratorPage() {
           ))}
         </div>
 
+        {/* Moderator Panel Links */}
+        <div className="mb-8">
+          <h2 className="text-base font-semibold text-foreground mb-3">
+            Moderator Panel
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              {
+                label: '🤝 All Trades',
+                description: 'Review and manage all platform trades',
+                path: '/trades',
+              },
+              // {
+              //   label: '🔐 Escrow Queue',
+              //   description: 'Review and resolve escrow disputes',
+              //   path: '/moderator/escrow',
+              // },
+            ].map((item) => (
+              <button
+                key={item.path}
+                onClick={() => router.push(item.path)}
+                className="bg-card border border-border rounded-xl p-5 text-left hover:bg-muted transition-colors cursor-pointer"
+              >
+                <p className="text-foreground font-semibold text-base mb-1">
+                  {item.label}
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  {item.description}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-base font-semibold text-foreground mb-3">
@@ -248,9 +288,8 @@ export default function ModeratorPage() {
           </h2>
           <div className="flex gap-2 flex-wrap">
             {[
-              { label: '🏠 Dashboard', path: '/dashboard' },
-              { label: '🤝 All Trades', path: '/trades' },
-              { label: '🔐 Escrow Queue', path: '/moderator/escrow' },
+              { label: '📋 Browse Offers', path: '/offers' },
+              { label: '🤝 My Trades', path: '/trades' },
               { label: '👤 Profile', path: '/profile' },
             ].map((action) => (
               <button
@@ -295,7 +334,11 @@ export default function ModeratorPage() {
             </div>
           </div>
 
-          {filteredTrades.length === 0 ? (
+          {loading ? (
+            <div className="bg-card border border-border rounded-xl p-6 text-center">
+              <p className="text-muted-foreground text-sm">Loading trades...</p>
+            </div>
+          ) : filteredTrades.length === 0 ? (
             <div className="bg-card border border-border rounded-xl p-6 text-center">
               <p className="text-muted-foreground text-sm">No trades found.</p>
             </div>
@@ -324,14 +367,7 @@ export default function ModeratorPage() {
                         </span>
                       </div>
 
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(4, 1fr)',
-                          gap: '12px',
-                        }}
-                        className="mb-3"
-                      >
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                         {[
                           {
                             label: 'Amount',
@@ -471,6 +507,16 @@ export default function ModeratorPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+          {filteredTrades.length > 0 && (
+            <div className="mt-3 text-center">
+              <button
+                onClick={() => router.push('/trades')}
+                className="text-sm text-primary hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none"
+              >
+                View all trades →
+              </button>
             </div>
           )}
         </div>
