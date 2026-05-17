@@ -180,7 +180,8 @@ export default function FundingPage() {
               <input
                 type="number"
                 value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) })}
+                onChange={(e) => setForm({ ...form, amount: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
+                
                 placeholder="0.00"
                 min="0"
                 step="any"

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSwap, getSwapHistory, SwapPayload } from '@/lib/services';
+import { createSwap, getSwapHistory } from '@/lib/services';
 
 const ASSETS = ['USDT', 'BTC', 'ETH', 'BNB', 'SOL'];
+
+type Direction = 'balance_to_wallet' | 'wallet_to_balance';
 
 export default function SwapPage() {
   const router = useRouter();
@@ -15,10 +17,11 @@ export default function SwapPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const [form, setForm] = useState<SwapPayload>({
+  const [form, setForm] = useState({
     fromAsset: 'USDT',
     toAsset: 'BTC',
     fromAmount: 0,
+    direction: 'balance_to_wallet' as Direction,
   });
 
   useEffect(() => {
@@ -59,10 +62,11 @@ export default function SwapPage() {
         fromAsset: form.fromAsset,
         toAsset: form.toAsset,
         fromAmount: Number(form.fromAmount),
+        direction: form.direction,
       });
       setSuccess(`Swap from ${form.fromAsset} to ${form.toAsset} submitted successfully`);
       setShowForm(false);
-      setForm({ fromAsset: 'USDT', toAsset: 'BTC', fromAmount: 0 });
+      setForm({ fromAsset: 'USDT', toAsset: 'BTC', fromAmount: 0, direction: 'balance_to_wallet' });
       await fetchSwaps();
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to submit swap');
@@ -137,6 +141,35 @@ export default function SwapPage() {
           >
             <h3 className="text-foreground font-semibold text-base">New Swap</h3>
 
+            {/* Direction Toggle */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Direction</label>
+              <div className="flex gap-2">
+                {([
+                  { value: 'balance_to_wallet', label: '💰 Balance → Wallet' },
+                  { value: 'wallet_to_balance', label: '👛 Wallet → Balance' },
+                ] as const).map((d) => (
+                  <button
+                    key={d.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, direction: d.value })}
+                    className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      form.direction === d.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-muted-foreground text-xs">
+                {form.direction === 'balance_to_wallet'
+                  ? 'Spend your main balance to fill an asset wallet'
+                  : 'Sell your asset wallet back to main balance'}
+              </p>
+            </div>
+
             {/* From Asset */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">From Asset</label>
@@ -152,7 +185,7 @@ export default function SwapPage() {
               </select>
             </div>
 
-            {/* Swap Arrow */}
+            {/* Swap Direction Button */}
             <div className="flex items-center justify-center">
               <button
                 type="button"
@@ -164,7 +197,6 @@ export default function SwapPage() {
                   }))
                 }
                 className="w-10 h-10 rounded-full bg-muted border border-border text-foreground flex items-center justify-center hover:bg-accent transition-colors cursor-pointer text-lg"
-                title="Swap direction"
               >
                 ⇅
               </button>
@@ -185,12 +217,14 @@ export default function SwapPage() {
               </select>
             </div>
 
-            {/* From Amount */}
+            {/* Amount */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Amount ({form.fromAsset})</label>
+              <label className="text-sm font-medium text-foreground">
+                Amount ({form.fromAsset})
+              </label>
               <input
                 type="number"
-                value={form.fromAmount}
+                value={form.fromAmount || ''}
                 onChange={(e) => setForm({ ...form, fromAmount: parseFloat(e.target.value) })}
                 placeholder="0.00"
                 min="0"
@@ -259,12 +293,10 @@ export default function SwapPage() {
                 className="bg-card border border-border rounded-xl px-5 py-4"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-foreground font-semibold text-sm">{s.fromAsset}</span>
-                      <span className="text-primary text-base">→</span>
-                      <span className="text-foreground font-semibold text-sm">{s.toAsset}</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-foreground font-semibold text-sm">{s.fromAsset}</span>
+                    <span className="text-primary text-base">→</span>
+                    <span className="text-foreground font-semibold text-sm">{s.toAsset}</span>
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle(s.status)}`}>
                     {s.status}
