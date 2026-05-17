@@ -4,7 +4,20 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSwap, getSwapHistory } from '@/lib/services';
 
-const ASSETS = ['USDT', 'BTC', 'ETH', 'BNB', 'SOL'];
+const ASSETS = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL'];
+
+const DIRECTIONS = [
+  {
+    value: 'balance_to_wallet',
+    label: '💰 Balance → Wallet',
+    description: 'Swap from your main balance into an asset wallet',
+  },
+  {
+    value: 'wallet_to_balance',
+    label: '👛 Wallet → Balance',
+    description: 'Swap from an asset wallet back to your main balance',
+  },
+];
 
 type Direction = 'balance_to_wallet' | 'wallet_to_balance';
 
@@ -21,7 +34,11 @@ export default function SwapPage() {
     fromAsset: 'USDT',
     toAsset: 'BTC',
     fromAmount: 0,
+<<<<<<< HEAD
     direction: 'balance_to_wallet' as Direction,
+=======
+    direction: 'balance_to_wallet',
+>>>>>>> dff5fd34fc7514323ba1d8df775f77e1669274d0
   });
 
   useEffect(() => {
@@ -39,7 +56,12 @@ export default function SwapPage() {
       const data = await getSwapHistory();
       setSwaps(data ?? []);
     } catch (err: any) {
-      setError('Failed to load swap history');
+      console.log('Swap history error:', err?.response?.data);
+      const serverMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        'Failed to load swap history';
+      setError(serverMessage);
     } finally {
       setLoading(false);
     }
@@ -64,12 +86,31 @@ export default function SwapPage() {
         fromAmount: Number(form.fromAmount),
         direction: form.direction,
       });
-      setSuccess(`Swap from ${form.fromAsset} to ${form.toAsset} submitted successfully`);
+      setSuccess(
+        `Swap from ${form.fromAsset} to ${form.toAsset} submitted successfully`,
+      );
       setShowForm(false);
+<<<<<<< HEAD
       setForm({ fromAsset: 'USDT', toAsset: 'BTC', fromAmount: 0, direction: 'balance_to_wallet' });
+=======
+      setForm({
+        fromAsset: 'USDT',
+        toAsset: 'BTC',
+        fromAmount: 0,
+        direction: 'balance_to_wallet',
+      });
+>>>>>>> dff5fd34fc7514323ba1d8df775f77e1669274d0
       await fetchSwaps();
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to submit swap');
+      console.log('Swap error:', err?.response?.data);
+
+      const serverMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        (typeof err?.response?.data === 'string' ? err.response.data : null) ||
+        'Failed to submit swap';
+
+      setError(serverMessage);
     } finally {
       setSubmitting(false);
     }
@@ -77,10 +118,14 @@ export default function SwapPage() {
 
   const statusStyle = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'completed': return 'bg-primary/10 text-primary';
-      case 'pending': return 'bg-accent text-accent-foreground';
-      case 'failed': return 'bg-destructive/10 text-destructive';
-      default: return 'bg-secondary text-secondary-foreground';
+      case 'completed':
+        return 'bg-primary/10 text-primary';
+      case 'pending':
+        return 'bg-accent text-accent-foreground';
+      case 'failed':
+        return 'bg-destructive/10 text-destructive';
+      default:
+        return 'bg-secondary text-secondary-foreground';
     }
   };
 
@@ -97,7 +142,6 @@ export default function SwapPage() {
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-10">
       <div className="max-w-xl mx-auto">
-
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -110,7 +154,11 @@ export default function SwapPage() {
             <h1 className="text-2xl font-bold text-foreground">Swap</h1>
           </div>
           <button
-            onClick={() => { setShowForm(!showForm); setError(null); setSuccess(null); }}
+            onClick={() => {
+              setShowForm(!showForm);
+              setError(null);
+              setSuccess(null);
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
               showForm
                 ? 'bg-secondary text-secondary-foreground hover:bg-muted'
@@ -139,7 +187,40 @@ export default function SwapPage() {
             onSubmit={handleSwap}
             className="bg-card border border-border rounded-xl p-6 mb-6 flex flex-col gap-5"
           >
-            <h3 className="text-foreground font-semibold text-base">New Swap</h3>
+            <h3 className="text-foreground font-semibold text-base">
+              New Swap
+            </h3>
+
+            {/* Direction */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">
+                Direction
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {DIRECTIONS.map((d) => (
+                  <button
+                    key={d.value}
+                    type="button"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        direction: d.value as
+                          | 'balance_to_wallet'
+                          | 'wallet_to_balance',
+                      })
+                    }
+                    className={`px-4 py-3 rounded-lg border text-left transition-colors cursor-pointer ${
+                      form.direction === d.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-muted text-muted-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    <p className="text-xs font-semibold">{d.label}</p>
+                    <p className="text-xs mt-0.5 opacity-70">{d.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Direction Toggle */}
             <div className="flex flex-col gap-2">
@@ -172,20 +253,30 @@ export default function SwapPage() {
 
             {/* From Asset */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">From Asset</label>
+              <label className="text-sm font-medium text-foreground">
+                From Asset
+              </label>
               <select
                 value={form.fromAsset}
-                onChange={(e) => setForm({ ...form, fromAsset: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, fromAsset: e.target.value })
+                }
                 required
                 className="w-full px-4 py-2.5 rounded-lg bg-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {ASSETS.map((a) => (
-                  <option key={a} value={a}>{a}</option>
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
                 ))}
               </select>
             </div>
 
+<<<<<<< HEAD
             {/* Swap Direction Button */}
+=======
+            {/* Swap direction arrow */}
+>>>>>>> dff5fd34fc7514323ba1d8df775f77e1669274d0
             <div className="flex items-center justify-center">
               <button
                 type="button"
@@ -197,6 +288,10 @@ export default function SwapPage() {
                   }))
                 }
                 className="w-10 h-10 rounded-full bg-muted border border-border text-foreground flex items-center justify-center hover:bg-accent transition-colors cursor-pointer text-lg"
+<<<<<<< HEAD
+=======
+                title="Swap assets"
+>>>>>>> dff5fd34fc7514323ba1d8df775f77e1669274d0
               >
                 ⇅
               </button>
@@ -204,7 +299,9 @@ export default function SwapPage() {
 
             {/* To Asset */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">To Asset</label>
+              <label className="text-sm font-medium text-foreground">
+                To Asset
+              </label>
               <select
                 value={form.toAsset}
                 onChange={(e) => setForm({ ...form, toAsset: e.target.value })}
@@ -212,7 +309,9 @@ export default function SwapPage() {
                 className="w-full px-4 py-2.5 rounded-lg bg-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {ASSETS.map((a) => (
-                  <option key={a} value={a}>{a}</option>
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
                 ))}
               </select>
             </div>
@@ -224,8 +323,15 @@ export default function SwapPage() {
               </label>
               <input
                 type="number"
+<<<<<<< HEAD
                 value={form.fromAmount || ''}
                 onChange={(e) => setForm({ ...form, fromAmount: parseFloat(e.target.value) })}
+=======
+                value={form.fromAmount}
+                onChange={(e) =>
+                  setForm({ ...form, fromAmount: parseFloat(e.target.value) })
+                }
+>>>>>>> dff5fd34fc7514323ba1d8df775f77e1669274d0
                 placeholder="0.00"
                 min="0"
                 step="any"
@@ -235,19 +341,33 @@ export default function SwapPage() {
             </div>
 
             {/* Preview */}
-            {form.fromAsset && form.toAsset && form.fromAsset !== form.toAsset && (
+            {form.fromAsset !== form.toAsset && (
               <div className="bg-muted rounded-lg px-4 py-3 text-sm text-muted-foreground">
-                Swapping{' '}
-                <span className="text-foreground font-medium">
-                  {form.fromAmount || 0} {form.fromAsset}
-                </span>{' '}
-                →{' '}
-                <span className="text-primary font-medium">{form.toAsset}</span>
+                <p>
+                  Swapping{' '}
+                  <span className="text-foreground font-medium">
+                    {form.fromAmount || 0} {form.fromAsset}
+                  </span>{' '}
+                  →{' '}
+                  <span className="text-primary font-medium">
+                    {form.toAsset}
+                  </span>
+                </p>
+                <p className="text-xs mt-1 opacity-70">
+                  Direction:{' '}
+                  <span className="text-foreground">
+                    {form.direction === 'balance_to_wallet'
+                      ? 'Main Balance → Asset Wallet'
+                      : 'Asset Wallet → Main Balance'}
+                  </span>
+                </p>
               </div>
             )}
 
             {form.fromAsset === form.toAsset && (
-              <p className="text-destructive text-xs">From and To assets cannot be the same.</p>
+              <p className="text-destructive text-xs">
+                From and To assets cannot be the same.
+              </p>
             )}
 
             <button
@@ -255,7 +375,9 @@ export default function SwapPage() {
               disabled={submitting || form.fromAsset === form.toAsset}
               className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {submitting ? 'Swapping...' : `Swap ${form.fromAsset} → ${form.toAsset}`}
+              {submitting
+                ? 'Swapping...'
+                : `Swap ${form.fromAsset} → ${form.toAsset}`}
             </button>
           </form>
         )}
@@ -273,7 +395,9 @@ export default function SwapPage() {
         </div>
 
         {/* Swap History */}
-        <h2 className="text-base font-semibold text-foreground mb-3">Swap History</h2>
+        <h2 className="text-base font-semibold text-foreground mb-3">
+          Swap History
+        </h2>
 
         {swaps.length === 0 ? (
           <div className="bg-card border border-border rounded-xl p-10 text-center">
@@ -293,12 +417,25 @@ export default function SwapPage() {
                 className="bg-card border border-border rounded-xl px-5 py-4"
               >
                 <div className="flex items-center justify-between">
+<<<<<<< HEAD
                   <div className="flex items-center gap-2">
                     <span className="text-foreground font-semibold text-sm">{s.fromAsset}</span>
                     <span className="text-primary text-base">→</span>
                     <span className="text-foreground font-semibold text-sm">{s.toAsset}</span>
+=======
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground font-semibold text-sm">
+                      {s.fromAsset}
+                    </span>
+                    <span className="text-primary text-base">→</span>
+                    <span className="text-foreground font-semibold text-sm">
+                      {s.toAsset}
+                    </span>
+>>>>>>> dff5fd34fc7514323ba1d8df775f77e1669274d0
                   </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle(s.status)}`}>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle(s.status)}`}
+                  >
                     {s.status}
                   </span>
                 </div>
@@ -324,9 +461,20 @@ export default function SwapPage() {
                   </div>
                 </div>
 
-                <p className="text-muted-foreground text-xs mt-2">
+                {/* Show direction if available */}
+                {s.direction && (
+                  <p className="text-muted-foreground text-xs mt-2">
+                    {s.direction === 'balance_to_wallet'
+                      ? '💰 Balance → Wallet'
+                      : '👛 Wallet → Balance'}
+                  </p>
+                )}
+
+                <p className="text-muted-foreground text-xs mt-1">
                   {new Date(s.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric', month: 'short', day: 'numeric',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
                   })}
                 </p>
               </div>

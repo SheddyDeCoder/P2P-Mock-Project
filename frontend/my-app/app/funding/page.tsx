@@ -6,6 +6,11 @@ import { getMyFunding, createFunding, FundingPayload } from '@/lib/services';
 
 const ASSETS = ['USDT', 'BTC', 'ETH', 'BNB', 'SOL'];
 
+const formatAmount = (value: number | string) => {
+  const num = parseFloat(String(value));
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function FundingPage() {
   const router = useRouter();
   const [funding, setFunding] = useState<any[]>([]);
@@ -178,13 +183,23 @@ export default function FundingPage() {
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">Amount</label>
               <input
+<<<<<<< HEAD
                 type="number"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                 
+=======
+                type="text"
+                inputMode="decimal"
+                value={form.amount === 0 ? '' : Number(form.amount).toLocaleString('en-US')}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/,/g, '');
+                  if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+                    setForm({ ...form, amount: raw === '' ? 0 : parseFloat(raw) });
+                  }
+                }}
+>>>>>>> dff5fd34fc7514323ba1d8df775f77e1669274d0
                 placeholder="0.00"
-                min="0"
-                step="any"
                 required
                 className="w-full px-4 py-2.5 rounded-lg bg-muted border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
@@ -204,12 +219,12 @@ export default function FundingPage() {
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-card border border-border rounded-xl p-4">
             <p className="text-muted-foreground text-xs mb-1">Total Deposited</p>
-            <p className="text-foreground font-bold text-xl">${totalDeposited.toFixed(2)}</p>
+            <p className="text-foreground font-bold text-xl">${formatAmount(totalDeposited)}</p>
             <p className="text-muted-foreground text-xs mt-1">{deposits.length} deposit{deposits.length !== 1 ? 's' : ''}</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <p className="text-muted-foreground text-xs mb-1">Total Withdrawn</p>
-            <p className="text-foreground font-bold text-xl">${totalWithdrawn.toFixed(2)}</p>
+            <p className="text-foreground font-bold text-xl">${formatAmount(totalWithdrawn)}</p>
             <p className="text-muted-foreground text-xs mt-1">{withdrawals.length} withdrawal{withdrawals.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
@@ -254,7 +269,7 @@ export default function FundingPage() {
                 </div>
                 <div className="text-right ml-4 shrink-0">
                   <p className="text-foreground font-bold text-base">
-                    ${parseFloat(f.amount).toFixed(2)}
+                    ${formatAmount(f.amount)}
                   </p>
                   <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle(f.status)}`}>
                     {f.status}

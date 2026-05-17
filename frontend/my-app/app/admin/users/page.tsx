@@ -18,8 +18,14 @@ export default function AdminUsersPage() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
-    if (!token) { router.replace('/auth/login'); return; }
-    if (role !== 'admin') { router.replace('/dashboard'); return; }
+    if (!token) {
+      router.replace('/auth/login');
+      return;
+    }
+    if (role !== 'admin') {
+      router.replace('/dashboard');
+      return;
+    }
     fetchUsers();
   }, [router]);
 
@@ -52,15 +58,19 @@ export default function AdminUsersPage() {
 
   const roleStyle = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-primary/20 text-primary';
-      case 'moderator': return 'bg-accent text-accent-foreground';
-      default: return 'bg-secondary text-secondary-foreground';
+      case 'admin':
+        return 'bg-primary/20 text-primary';
+      case 'moderator':
+        return 'bg-accent text-accent-foreground';
+      default:
+        return 'bg-secondary text-secondary-foreground';
     }
   };
 
-  const filtered = users.filter((u) =>
-    u.email?.toLowerCase().includes(search.toLowerCase()) ||
-    u.username?.toLowerCase().includes(search.toLowerCase())
+  const filtered = users.filter(
+    (u) =>
+      u.email?.toLowerCase().includes(search.toLowerCase()) ||
+      u.username?.toLowerCase().includes(search.toLowerCase()),
   );
 
   if (loading) {
@@ -74,11 +84,10 @@ export default function AdminUsersPage() {
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-10">
       <div className="max-w-3xl mx-auto">
-
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/admin')}
             className="text-muted-foreground hover:text-foreground transition-colors text-xl"
           >
             ←
@@ -105,10 +114,19 @@ export default function AdminUsersPage() {
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
             { label: 'Total Users', value: users.length },
-            { label: 'Admins', value: users.filter((u) => u.role === 'admin').length },
-            { label: 'Moderators', value: users.filter((u) => u.role === 'moderator').length },
+            {
+              label: 'Admins',
+              value: users.filter((u) => u.role === 'admin').length,
+            },
+            {
+              label: 'Moderators',
+              value: users.filter((u) => u.role === 'moderator').length,
+            },
           ].map((card) => (
-            <div key={card.label} className="bg-card border border-border rounded-xl p-4 text-center">
+            <div
+              key={card.label}
+              className="bg-card border border-border rounded-xl p-4 text-center"
+            >
               <p className="text-muted-foreground text-xs mb-1">{card.label}</p>
               <p className="text-foreground font-bold text-xl">{card.value}</p>
             </div>
@@ -128,7 +146,9 @@ export default function AdminUsersPage() {
 
         {/* Users List */}
         <h2 className="text-base font-semibold text-foreground mb-3">
-          All Users {search && `— ${filtered.length} result${filtered.length !== 1 ? 's' : ''}`}
+          All Users{' '}
+          {search &&
+            `— ${filtered.length} result${filtered.length !== 1 ? 's' : ''}`}
         </h2>
 
         {filtered.length === 0 ? (
@@ -150,11 +170,15 @@ export default function AdminUsersPage() {
                         <p className="text-foreground font-semibold text-sm truncate">
                           {u.username || 'No username'}
                         </p>
-                        <span className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium ${roleStyle(u.role)}`}>
+                        <span
+                          className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium ${roleStyle(u.role)}`}
+                        >
                           {u.role}
                         </span>
                       </div>
-                      <p className="text-muted-foreground text-xs truncate">{u.email}</p>
+                      <p className="text-muted-foreground text-xs truncate">
+                        {u.email}
+                      </p>
                       <p className="text-muted-foreground text-xs mt-1 font-mono">
                         #{u.id?.slice(0, 16)}...
                       </p>
@@ -169,7 +193,9 @@ export default function AdminUsersPage() {
                         className="px-3 py-1.5 rounded-lg bg-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 cursor-pointer"
                       >
                         {ROLES.map((r) => (
-                          <option key={r} value={r}>{r}</option>
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -186,14 +212,19 @@ export default function AdminUsersPage() {
                       <p className="mb-0.5">Joined</p>
                       <p className="text-foreground font-medium">
                         {u.createdAt
-                          ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                          ? new Date(u.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              year: 'numeric',
+                            })
                           : '—'}
                       </p>
                     </div>
                     <div>
                       <p className="mb-0.5">Wallet</p>
                       <p className="text-foreground font-medium font-mono truncate">
-                        {u.walletAddress ? `${u.walletAddress.slice(0, 10)}...` : '—'}
+                        {u.walletAddress
+                          ? `${u.walletAddress.slice(0, 10)}...`
+                          : '—'}
                       </p>
                     </div>
                   </div>

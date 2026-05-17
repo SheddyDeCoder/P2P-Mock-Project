@@ -19,7 +19,11 @@ export type SwapPayload = {
   fromAsset: string;
   toAsset: string;
   fromAmount: number;
+<<<<<<< HEAD
   direction: 'balance_to_wallet' | 'wallet_to_balance'; // ← added
+=======
+  direction: 'balance_to_wallet' | 'wallet_to_balance';
+>>>>>>> dff5fd34fc7514323ba1d8df775f77e1669274d0
 };
 export type OfferPayload = {
   type: 'buy' | 'sell';
@@ -45,6 +49,7 @@ export type EscrowUpdatePayload = {
   contractAddress?: string;
 };
 export type WalletFundPayload = {
+  type: 'deposit' | 'withdrawal';
   walletAddress: string;
   asset: string;
   amount: number;

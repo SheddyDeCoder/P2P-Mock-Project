@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getMyProfile, updateMyProfile, UpdateProfilePayload } from '@/lib/services';
 
+const formatAmount = (value: number | string) => {
+  const num = parseFloat(String(value));
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
@@ -137,7 +142,7 @@ export default function ProfilePage() {
               {[
                 { label: 'Email', value: profile?.email },
                 { label: 'Username', value: profile?.username || '—' },
-                { label: 'Balance', value: `$${parseFloat(profile?.balance ?? 0).toFixed(2)}` },
+                { label: 'Balance', value: `$${formatAmount(profile?.balance ?? 0)}` },
                 { label: 'Wallet Address', value: profile?.walletAddress || '—' },
                 {
                   label: 'Member Since',

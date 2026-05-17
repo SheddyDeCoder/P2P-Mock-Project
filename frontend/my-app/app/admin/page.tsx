@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, easeOut } from 'framer-motion';
+import { easeOut, motion } from 'framer-motion';
 import {
   getMyProfile,
   getMyWallets,
@@ -10,13 +10,9 @@ import {
   getSwapHistory,
 } from '@/lib/services';
 
-const formatAmount = (value: number | string, decimals = 2) => {
-  const num = parseFloat(String(value));
-  return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-};
-
-export default function DashboardPage() {
+export default function AdminDashboardPage() {
   const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [wallets, setWallets] = useState<any[]>([]);
   const [funding, setFunding] = useState<any[]>([]);
@@ -26,10 +22,18 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+
     if (!token) {
       router.replace('/auth/login');
       return;
     }
+    if (role !== 'admin') {
+      router.replace('/dashboard');
+      return;
+    }
+
+    setAuthorized(true);
 
     const fetchAll = async () => {
       try {
@@ -45,8 +49,10 @@ export default function DashboardPage() {
           ]);
 
         if (profileData.status === 'fulfilled') setProfile(profileData.value);
-        if (walletsData.status === 'fulfilled') setWallets(walletsData.value ?? []);
-        if (fundingData.status === 'fulfilled') setFunding(fundingData.value ?? []);
+        if (walletsData.status === 'fulfilled')
+          setWallets(walletsData.value ?? []);
+        if (fundingData.status === 'fulfilled')
+          setFunding(fundingData.value ?? []);
         if (swapsData.status === 'fulfilled') setSwaps(swapsData.value ?? []);
       } catch (err: any) {
         setError('Failed to load dashboard data');
@@ -58,44 +64,32 @@ export default function DashboardPage() {
     fetchAll();
   }, [router]);
 
+  if (!authorized) return null;
+
   const totalWalletBalance = wallets.reduce(
     (sum: number, w: any) => sum + parseFloat(w.balance ?? 0),
     0,
   );
 
-  const recentFunding = funding.slice(0, 5);
-  const recentSwaps = swaps.slice(0, 3);
+  const recentFunding = funding.slice(0, 4);
+  const recentSwaps = swaps.slice(0, 2);
+  const recentWallets = wallets.slice(0, 2);
 
   const statusStyle = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'completed': return 'bg-primary/10 text-primary';
-      case 'pending': return 'bg-accent text-accent-foreground';
-      case 'failed': return 'bg-destructive/10 text-destructive';
-      case 'funded': return 'bg-accent text-accent-foreground';
-      case 'cancelled': return 'bg-secondary text-secondary-foreground';
-      default: return 'bg-secondary text-secondary-foreground';
+      case 'completed':
+        return 'bg-primary/10 text-primary';
+      case 'pending':
+        return 'bg-accent text-accent-foreground';
+      case 'failed':
+        return 'bg-destructive/10 text-destructive';
+      case 'funded':
+        return 'bg-accent text-accent-foreground';
+      case 'cancelled':
+        return 'bg-secondary text-secondary-foreground';
+      default:
+        return 'bg-secondary text-secondary-foreground';
     }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: easeOut },
-    },
-  };
-
-  const cardHover = {
-    hover: { scale: 1.03, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' },
   };
 
   if (loading) {
@@ -123,44 +117,86 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-10">
       <div className="max-w-4xl mx-auto">
-
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-foreground">
-            Welcome back, {profile?.username || profile?.email?.split('@')[0] || 'User'} 👋
+            Welcome back,{' '}
+            {profile?.username || profile?.email?.split('@')[0] || 'Admin'} 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {profile?.email} · Role: {profile?.role ?? localStorage.getItem('role') ?? 'user'}
+            {profile?.email} · Role: admin
           </p>
         </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
           {[
-            { label: 'Main Balance', value: `$${formatAmount(profile?.balance ?? 0)}` },
-            { label: 'Wallet Balance', value: `$${formatAmount(totalWalletBalance)}` },
+            {
+              label: 'Main Balance',
+              value: `$${parseFloat(profile?.balance ?? 0).toFixed(2)}`,
+            },
+            {
+              label: 'Wallet Balance',
+              value: `$${totalWalletBalance.toFixed(2)}`,
+            },
             { label: 'Wallets', value: wallets.length },
             { label: 'Transactions', value: funding.length },
             { label: 'Swaps', value: swaps.length },
           ].map((card) => (
             <div
               key={card.label}
-              className="bg-card border border-border rounded-xl p-4 text-center overflow-hidden min-w-0"
+              className="bg-card border border-border rounded-xl p-4 text-center"
             >
-              <p className="text-muted-foreground text-xs mb-1 truncate">{card.label}</p>
-              <p
-                className="text-foreground font-bold leading-tight break-all"
-                style={{ fontSize: 'clamp(0.65rem, 1.8vw, 1.25rem)' }}
-              >
-                {card.value}
-              </p>
+              <p className="text-muted-foreground text-xs mb-1">{card.label}</p>
+              <p className="text-foreground font-bold text-xl">{card.value}</p>
             </div>
           ))}
         </div>
 
+        {/* Admin Sections */}
+        <div className="mb-8">
+          <h2 className="text-base font-semibold text-foreground mb-3">
+            Admin Panel
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              {
+                label: '👥 Users',
+                description: 'Manage user roles and accounts',
+                path: '/admin/users',
+              },
+              {
+                label: '📁 Trades',
+                description: 'View and manage all trades',
+                path: '/admin/trades',
+              },
+              {
+                label: '📌 Offers',
+                description: 'View and manage all offers',
+                path: '/admin/offers',
+              },
+            ].map((item) => (
+              <button
+                key={item.path}
+                onClick={() => router.push(item.path)}
+                className="bg-card border border-border rounded-xl p-5 text-left hover:bg-muted transition-colors cursor-pointer"
+              >
+                <p className="text-foreground font-semibold text-base mb-1">
+                  {item.label}
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  {item.description}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-base font-semibold text-foreground mb-3">Quick Actions</h2>
+          <h2 className="text-base font-semibold text-foreground mb-3">
+            Quick Actions
+          </h2>
           <div className="flex gap-2 flex-wrap">
             {[
               { label: '💰 Fund Account', path: '/funding' },
@@ -183,11 +219,12 @@ export default function DashboardPage() {
 
         {/* Bottom Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
           {/* Recent Transactions */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold text-foreground">Recent Transactions</h2>
+              <h2 className="text-base font-semibold text-foreground">
+                Recent Transactions
+              </h2>
               <button
                 onClick={() => router.push('/funding')}
                 className="text-xs text-primary hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none"
@@ -198,7 +235,9 @@ export default function DashboardPage() {
 
             {recentFunding.length === 0 ? (
               <div className="bg-card border border-border rounded-xl p-6 text-center">
-                <p className="text-muted-foreground text-sm mb-2">No transactions yet.</p>
+                <p className="text-muted-foreground text-sm mb-2">
+                  No transactions yet.
+                </p>
                 <span
                   className="text-primary text-xs cursor-pointer underline"
                   onClick={() => router.push('/funding')}
@@ -213,19 +252,22 @@ export default function DashboardPage() {
                     key={f.id}
                     className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                   >
-                    <div className="min-w-0 flex-1">
+                    <div>
                       <p className="text-foreground font-medium text-sm">
-                        {f.type === 'deposit' ? '⬇️ Deposit' : '⬆️ Withdrawal'} · {f.asset}
+                        {f.type === 'deposit' ? '⬇️ Deposit' : '⬆️ Withdrawal'}{' '}
+                        · {f.asset}
                       </p>
                       <p className="text-muted-foreground text-xs mt-0.5">
                         {new Date(f.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="text-right ml-2 shrink-0">
+                    <div className="text-right">
                       <p className="text-foreground font-bold text-sm">
-                        ${formatAmount(f.amount)}
+                        ${parseFloat(f.amount).toFixed(2)}
                       </p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusStyle(f.status)}`}>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${statusStyle(f.status)}`}
+                      >
                         {f.status}
                       </span>
                     </div>
@@ -238,7 +280,9 @@ export default function DashboardPage() {
           {/* Wallets + Swaps */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold text-foreground">Asset Wallets</h2>
+              <h2 className="text-base font-semibold text-foreground">
+                Asset Wallets
+              </h2>
               <button
                 onClick={() => router.push('/wallet')}
                 className="text-xs text-primary hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none"
@@ -249,7 +293,9 @@ export default function DashboardPage() {
 
             {wallets.length === 0 ? (
               <div className="bg-card border border-border rounded-xl p-6 text-center mb-4">
-                <p className="text-muted-foreground text-sm mb-2">No wallets yet.</p>
+                <p className="text-muted-foreground text-sm mb-2">
+                  No wallets yet.
+                </p>
                 <span
                   className="text-primary text-xs cursor-pointer underline"
                   onClick={() => router.push('/wallet')}
@@ -259,30 +305,33 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-2 mb-6">
-                {wallets.map((w: any) => (
+                {recentWallets.map((w: any) => (
                   <div
-                    key={w.id}
+                    key={w.asset}
                     className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-foreground font-medium text-sm">{w.asset}</p>
-                      <p className="text-muted-foreground text-xs mt-0.5 truncate">
+                    <div>
+                      <p className="text-foreground font-medium text-sm">
+                        {w.asset}
+                      </p>
+                      <p className="text-muted-foreground text-xs mt-0.5">
                         {w.walletAddress?.slice(0, 16)}...
                       </p>
                     </div>
-                    <p className="text-foreground font-bold text-sm ml-2 shrink-0">
-                      {formatAmount(w.balance, 4)}
+                    <p className="text-foreground font-bold text-sm">
+                      {parseFloat(w.balance).toFixed(4)}
                     </p>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Recent Swaps */}
             {recentSwaps.length > 0 && (
               <>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-base font-semibold text-foreground">Recent Swaps</h2>
+                  <h2 className="text-base font-semibold text-foreground">
+                    Recent Swaps
+                  </h2>
                   <button
                     onClick={() => router.push('/swap')}
                     className="text-xs text-primary hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none"
@@ -296,14 +345,16 @@ export default function DashboardPage() {
                       key={s.id}
                       className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between"
                     >
-                      <p className="text-foreground font-medium text-sm min-w-0 flex-1">
+                      <p className="text-foreground font-medium text-sm">
                         {s.fromAsset} → {s.toAsset}
                       </p>
-                      <div className="text-right ml-2 shrink-0">
+                      <div className="text-right">
                         <p className="text-foreground text-sm">
-                          {formatAmount(s.fromAmount, 4)}
+                          {parseFloat(s.fromAmount).toFixed(4)}
                         </p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusStyle(s.status)}`}>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${statusStyle(s.status)}`}
+                        >
                           {s.status}
                         </span>
                       </div>

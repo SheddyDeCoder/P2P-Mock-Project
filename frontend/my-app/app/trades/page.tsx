@@ -2,7 +2,12 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getMyTrades, createTrade, updateTradeStatus, TradePayload } from '@/lib/services';
+import {
+  getMyTrades,
+  createTrade,
+  updateTradeStatus,
+  TradePayload,
+} from '@/lib/services';
 
 // ─── Inner component that uses useSearchParams ───────────────────────────────
 function TradesContent() {
@@ -53,7 +58,9 @@ function TradesContent() {
   const handleCreateTrade = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoggedIn) {
-      router.push(`/auth/register?redirect=/trades?offerId=${prefilledOfferId}&counterpartyId=${prefilledCounterpartyId}&asset=${prefilledAsset}&price=${prefilledPrice}`);
+      router.push(
+        `/auth/register?redirect=/trades?offerId=${prefilledOfferId}&counterpartyId=${prefilledCounterpartyId}&asset=${prefilledAsset}&price=${prefilledPrice}`,
+      );
       return;
     }
     setSubmitting(true);
@@ -92,19 +99,27 @@ function TradesContent() {
 
   const statusStyle = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'completed': return 'bg-primary/10 text-primary';
-      case 'funded': return 'bg-accent text-accent-foreground';
-      case 'pending': return 'bg-secondary text-secondary-foreground';
-      case 'cancelled': return 'bg-destructive/10 text-destructive';
-      default: return 'bg-secondary text-secondary-foreground';
+      case 'completed':
+        return 'bg-primary/10 text-primary';
+      case 'funded':
+        return 'bg-accent text-accent-foreground';
+      case 'pending':
+        return 'bg-secondary text-secondary-foreground';
+      case 'cancelled':
+        return 'bg-destructive/10 text-destructive';
+      default:
+        return 'bg-secondary text-secondary-foreground';
     }
   };
 
   const nextStatuses = (current: string) => {
     switch (current?.toLowerCase()) {
-      case 'pending': return ['funded', 'cancelled'];
-      case 'funded': return ['completed', 'cancelled'];
-      default: return [];
+      case 'pending':
+        return ['funded', 'cancelled'];
+      case 'funded':
+        return ['completed', 'cancelled'];
+      default:
+        return [];
     }
   };
 
@@ -123,7 +138,6 @@ function TradesContent() {
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-10">
       <div className="max-w-xl mx-auto">
-
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -146,7 +160,11 @@ function TradesContent() {
           </div>
           {isLoggedIn && (
             <button
-              onClick={() => { setShowForm(!showForm); setError(null); setSuccess(null); }}
+              onClick={() => {
+                setShowForm(!showForm);
+                setError(null);
+                setSuccess(null);
+              }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 showForm
                   ? 'bg-secondary text-secondary-foreground hover:bg-muted'
@@ -184,25 +202,35 @@ function TradesContent() {
               <div className="bg-muted rounded-lg px-4 py-3 flex flex-col gap-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Asset</span>
-                  <span className="text-foreground font-medium">{prefilledAsset}</span>
+                  <span className="text-foreground font-medium">
+                    {prefilledAsset}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Price</span>
-                  <span className="text-foreground font-medium">${parseFloat(prefilledPrice).toFixed(2)}</span>
+                  <span className="text-foreground font-medium">
+                    ${parseFloat(prefilledPrice).toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Offer ID</span>
-                  <span className="text-foreground font-mono">#{prefilledOfferId.slice(0, 12)}...</span>
+                  <span className="text-foreground font-mono">
+                    #{prefilledOfferId.slice(0, 12)}...
+                  </span>
                 </div>
               </div>
             )}
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Counterparty ID</label>
+              <label className="text-sm font-medium text-foreground">
+                Counterparty ID
+              </label>
               <input
                 type="text"
                 value={form.counterpartyId}
-                onChange={(e) => setForm({ ...form, counterpartyId: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, counterpartyId: e.target.value })
+                }
                 placeholder="Enter counterparty user ID"
                 readOnly={!!prefilledCounterpartyId}
                 required
@@ -215,11 +243,15 @@ function TradesContent() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Amount</label>
+              <label className="text-sm font-medium text-foreground">
+                Amount
+              </label>
               <input
                 type="number"
                 value={form.amount || ''}
-                onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) })}
+                onChange={(e) =>
+                  setForm({ ...form, amount: parseFloat(e.target.value) })
+                }
                 placeholder="0.00"
                 min="0"
                 step="any"
@@ -230,7 +262,9 @@ function TradesContent() {
 
             {!isLoggedIn && (
               <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 text-xs text-primary">
-                💡 You need a free account to complete this trade. Clicking below will take you to register — your trade details will be saved.
+                💡 You need a free account to complete this trade. Clicking
+                below will take you to register — your trade details will be
+                saved.
               </div>
             )}
 
@@ -239,7 +273,11 @@ function TradesContent() {
               disabled={submitting}
               className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {submitting ? 'Creating...' : !isLoggedIn ? 'Create Free Account to Trade →' : 'Create Trade'}
+              {submitting
+                ? 'Creating...'
+                : !isLoggedIn
+                  ? 'Create Free Account to Trade →'
+                  : 'Create Trade'}
             </button>
           </form>
         )}
@@ -249,22 +287,45 @@ function TradesContent() {
           <>
             <div className="grid grid-cols-3 gap-3 mb-6">
               {[
-                { label: 'Pending', value: pendingCount, style: 'text-muted-foreground' },
-                { label: 'Funded', value: fundedCount, style: 'text-accent-foreground' },
-                { label: 'Completed', value: completedCount, style: 'text-primary' },
+                {
+                  label: 'Pending',
+                  value: pendingCount,
+                  style: 'text-muted-foreground',
+                },
+                {
+                  label: 'Funded',
+                  value: fundedCount,
+                  style: 'text-accent-foreground',
+                },
+                {
+                  label: 'Completed',
+                  value: completedCount,
+                  style: 'text-primary',
+                },
               ].map((card) => (
-                <div key={card.label} className="bg-card border border-border rounded-xl p-4 text-center">
-                  <p className="text-muted-foreground text-xs mb-1">{card.label}</p>
-                  <p className={`font-bold text-xl ${card.style}`}>{card.value}</p>
+                <div
+                  key={card.label}
+                  className="bg-card border border-border rounded-xl p-4 text-center"
+                >
+                  <p className="text-muted-foreground text-xs mb-1">
+                    {card.label}
+                  </p>
+                  <p className={`font-bold text-xl ${card.style}`}>
+                    {card.value}
+                  </p>
                 </div>
               ))}
             </div>
 
-            <h2 className="text-base font-semibold text-foreground mb-3">All Trades</h2>
+            <h2 className="text-base font-semibold text-foreground mb-3">
+              All Trades
+            </h2>
 
             {trades.length === 0 ? (
               <div className="bg-card border border-border rounded-xl p-10 text-center">
-                <p className="text-muted-foreground text-sm mb-4">No trades yet.</p>
+                <p className="text-muted-foreground text-sm mb-4">
+                  No trades yet.
+                </p>
                 <button
                   onClick={() => router.push('/offers')}
                   className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
@@ -278,33 +339,48 @@ function TradesContent() {
                   const actions = nextStatuses(t.status);
                   const isUpdating = updatingId === t.id;
                   return (
-                    <div key={t.id} className="bg-card border border-border rounded-xl px-5 py-4">
+                    <div
+                      key={t.id}
+                      className="bg-card border border-border rounded-xl px-5 py-4"
+                    >
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-foreground font-semibold text-sm font-mono">
                           #{t.id.slice(0, 8)}
                         </p>
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle(t.status)}`}>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle(t.status)}`}
+                        >
                           {t.status}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
                         <div>
                           <p className="mb-0.5">Amount</p>
-                          <p className="text-foreground font-medium">${parseFloat(t.amount ?? 0).toFixed(2)}</p>
+                          <p className="text-foreground font-medium">
+                            ${parseFloat(t.amount ?? 0).toFixed(2)}
+                          </p>
                         </div>
                         <div>
                           <p className="mb-0.5">Escrow</p>
-                          <p className="text-foreground font-medium capitalize">{t.escrow?.status ?? '—'}</p>
+                          <p className="text-foreground font-medium capitalize">
+                            {t.escrow?.status ?? '—'}
+                          </p>
                         </div>
                         <div>
                           <p className="mb-0.5">Date</p>
                           <p className="text-foreground font-medium">
-                            {new Date(t.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            {new Date(t.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
                           </p>
                         </div>
                         <div>
                           <p className="mb-0.5">Offer</p>
-                          <p className="text-foreground font-medium font-mono">#{t.offerId?.slice(0, 8) ?? '—'}</p>
+                          <p className="text-foreground font-medium font-mono">
+                            #{t.offerId?.slice(0, 8) ?? '—'}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -340,7 +416,9 @@ function TradesContent() {
         {/* Guest: no prefill — show browse prompt */}
         {!isLoggedIn && !prefilledCounterpartyId && (
           <div className="bg-card border border-border rounded-xl p-10 text-center">
-            <p className="text-foreground font-semibold text-base mb-2">Want to trade?</p>
+            <p className="text-foreground font-semibold text-base mb-2">
+              Want to trade?
+            </p>
             <p className="text-muted-foreground text-sm mb-6">
               Browse active offers and start a trade — no KYC required.
             </p>
@@ -360,11 +438,13 @@ function TradesContent() {
 // ─── Wrapper with Suspense boundary (required for useSearchParams) ────────────
 export default function TradesPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground text-sm">Loading...</p>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        </div>
+      }
+    >
       <TradesContent />
     </Suspense>
   );
